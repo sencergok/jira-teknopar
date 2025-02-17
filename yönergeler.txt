@@ -1,0 +1,134 @@
+Task: Build a Jira-like Project Management Tool
+Task: Build a Jira-like Project Management Tool
+Objective
+Objective
+Develop a Jira-like
+Jira-like project management tool where users can create, assign, and manage tasks within projects. The tool will feature a Kanban-style board
+drag & drop functionality, filtering options, and role-based access control
+Kanban-style board with drag &
+drop functionality, filtering options
+drop functionality
+role-based access control.
+filtering options, and role-based access control
+Technologies
+Technologies
+Next.js 15 (App Router, Server Actions)
+Next.js 15 (App Router, Server Actions)
+TypeScript
+TypeScript
+Zustand
+Zustand (State Management)
+atlassian/react-beautiful-dnd (Drag & Drop)
+Supabase (Database, Authentication, API)
+Supabase
+DRİZZLE ORM
+Drillzle ORM (Database interactions)
+Tailwind CSS & shadcn/ui
+Tailwind CSS & shadcn/ui (UI Styling)
+Supabase Authentication
+Supabase Authentication (Authentication)
+GitHub & GitHub Actions
+GitHub & GitHub Actions (Version Control & CI/CD)
+Project Features
+Project Features
+User Authentication
+User Authentication – Login with OAuth (GitHub)
+Project & Task Management
+Project & Task Management – CRUD operations on projects & tasks
+Kanban Board
+Kanban Board – Drag & drop tasks between columns
+Task Filtering & Sorting
+Task Filtering & Sorting – Filter by status, priority, user
+Role-Based Access Control – Restrict actions based on user roles
+Role-Based Access Control
+CI/CD Integration – Automate deployment using GitHub Actions & Vercel
+CI/CD Integration
+Development Steps
+Development Steps
+1. Setup & Initialization
+1. Setup & Initialization
+Fork & Clone the GitHub Repository
+Fork & Clone the GitHub Repository
+Initialize a Next.js project with TypeScript
+Next.js project with TypeScript
+Set up Supabase
+Supabase and create tables for:
+Users
+Users (id, name, email, role)
+Projects (id, name, description)
+Projects
+Tasks
+Tasks (id, title, description, status, assigned_user, project_id)
+DRİZZLE ORM
+Connect to Supabase using Prisma ORM
+Configure authentication with NextAuth.js
+NextAuth.js
+2. Build Core Features
+2. Build Core Features
+Authentication & User Roles
+Authentication & User Roles
+Implement OAuth login
+OAuth login with Supabase
+Define Admin, Member
+Admin, Member roles
+Task & Project Management
+Task & Project Management
+Create CRUD operations
+CRUD operations using Server Actions
+Server Actions for tasks & projects
+Kanban Board UI
+Kanban Board UI
+Use atlassian/react-beautiful-dnd
+atlassian/react-beautiful-dnd to drag & drop
+drag & drop tasks between columns
+Store updated task positions in Supabase
+Filtering & Sorting
+Filtering & Sorting
+Use Zustand
+Zustand for managing filters & UI state
+Implement filters for status, priority, assigned user
+status, priority, assigned user
+Real-Time Sync
+Real-Time Sync
+Utilize Supabase real-time updates
+real-time updates for task changes
+GitHub Workflow & Team Collaboration
+GitHub Workflow & Team Collaboration
+Working as a Team
+Working as a Team
+1. Each intern works on feature branches
+Each intern works on feature branches
+Example: git checkout -b feature/task-drag-drop
+2. Pull latest changes before starting new work
+Pull latest changes before starting new work
+git pull origin main
+3. Commit and push changes to the feature branch
+Commit and push changes to the feature branch
+git commit -m "Added drag & drop feature"
+git push origin feature/task-drag-drop
+4. Create a Pull Request (PR) on GitHub
+Create a Pull Request (PR) on GitHub
+Title: Feature: Task Drag & Drop
+Add a description and request review from teammates
+5. Code Review & Merging
+Code Review & Merging
+Review each other’s code
+Resolve conflicts if any
+Merge only after approval
+6. Deploy updates using GitHub Actions & Vercel
+Deploy updates using GitHub Actions & Vercel
+Final Steps
+Final Steps
+Vercel
+Deploy the project on Vercel
+Write a README.md
+README.md with setup instructions
+Present the project with key learnings
+Resources
+Resources
+Next.js Documentation
+Supabase Documentation
+atlassian/react-beautiful-dnd 
+Drillzle ORM
+Zustand State Management
+Good luck!
