@@ -1,17 +1,47 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useState, useEffect } from 'react';
 
 export default function LoginPage() {
   const { signInWithGithub } = useAuth();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Mouse hareketlerini takip et
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 to-white overflow-hidden">
+      
+      {/* 🌟 Mouse Takip Eden Glow Efekti */}
+      <div 
+        className="absolute w-[250px] h-[250px] bg-indigo-400 opacity-40 rounded-full filter blur-3xl pointer-events-none transition-transform duration-75 ease-out"
+        style={{
+          left: `${mousePosition.x - 125}px`,
+          top: `${mousePosition.y - 125}px`,
+        }}
+      ></div>
+      <Badge className="absolute top-4 right-4">v0.1.0</Badge>
+        <div className='absolute top-4 left-4'>
+      <Badge className="py-1 px-4 mb-4" variant="default" color="indigo">
+                🚀 Takımlar için güçlü proje yönetimi.
+      </Badge>
+      </div>
+      {/* Giriş Kartı */}
+      <div className="relative z-10 max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-[0_0_80px_rgba(79,70,229,0.9)] 
+      group transition-all duration-300 hover:shadow-[0_0_50px_rgba(79,70,229,0.9)]" >
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Jira Teknopar</h1>
           <h2 className="text-xl font-medium text-gray-600">
-            Proje yönetimi artık daha kolay
+            Proje yönetimi artık daha kolay <br />
           </h2>
         </div>
 
@@ -35,6 +65,7 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
     </div>
   );
-} 
+}
