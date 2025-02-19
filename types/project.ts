@@ -1,24 +1,42 @@
-export interface Project {
+import { TaskStatus } from './task';
+import { Task } from './task';
+
+export type Project = {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   created_at: string;
-  updated_at: string;
-  owner_id: string;
-  is_private: boolean;
+  created_by_id: string;
+  project_members?: { user_id: string }[];
+};
+
+export interface DatabaseError {
+  message: string;
+}
+
+export interface ProjectCardProps {
+  project: Project;
+}
+
+export interface ProjectListProps {
+  projects: Project[];
+}
+
+export interface ProjectHeaderProps {
+  projectCount: number;
 }
 
 export interface ProjectMember {
   id: string;
   project_id: string;
   user_id: string;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  role: ProjectRole;
   joined_at: string;
-  user?: {
+  user: {
     id: string;
+    name: string;
     email: string;
-    full_name?: string;
-    avatar_url?: string;
+    avatar_url: string | null;
   };
 }
 
@@ -40,4 +58,31 @@ export interface ProjectModalProps {
   onClose: () => void;
   project?: Project;
   onProjectUpdate?: () => void;
+}
+
+export type ProjectRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+
+export interface ProjectPermissions {
+  canEditProject: boolean;
+  canDeleteProject: boolean;
+  canManageMembers: boolean;
+  canCreateTasks: boolean;
+  canEditTasks: boolean;
+  canDeleteTasks: boolean;
+  canAssignTasks: boolean;
+  canComment: boolean;
+}
+
+export interface TaskModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  projectId: string;
+  existingTask?: Task;
+  initialStatus?: TaskStatus;
+  permissions?: {
+    canEditTask: boolean;
+    canDeleteTask: boolean;
+    canAssignTasks: boolean;
+  };
+  onSuccess?: () => void;
 } 

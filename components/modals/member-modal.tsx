@@ -24,6 +24,7 @@ interface MemberModalProps {
     };
   };
   onSuccess: () => void;
+  userRole?: string; // Mevcut kullanıcının rolü
 }
 
 type User = {
@@ -47,6 +48,7 @@ export function MemberModal({
   projectId,
   existingMember,
   onSuccess,
+  userRole
 }: MemberModalProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
@@ -54,6 +56,19 @@ export function MemberModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Yetki kontrolleri
+  const canManageRoles = userRole === 'OWNER' || userRole === 'ADMIN';
+  const canDeleteMember = userRole === 'OWNER' || (userRole === 'ADMIN' && existingMember?.role !== 'ADMIN');
+  const availableRoles = (() => {
+    if (userRole === 'OWNER') {
+      return ['ADMIN', 'MEMBER', 'VIEWER'];
+    }
+    if (userRole === 'ADMIN') {
+      return ['MEMBER', 'VIEWER'];
+    }
+    return [];
+  })();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -105,6 +120,11 @@ export function MemberModal({
       return;
     }
 
+    if (!canManageRoles) {
+      setError('Bu işlem için yetkiniz yok.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -112,6 +132,28 @@ export function MemberModal({
       const supabase = createClient();
 
       if (existingMember) {
+        // Projedeki son admin kontrolü
+        if (existingMember.role === 'ADMIN' && selectedRole !== 'ADMIN') {
+          const { data: adminCount, error: countError } = await supabase
+            .from('project_members')
+            .select('id', { count: 'exact' })
+            .eq('project_id', projectId)
+            .eq('role', 'ADMIN');
+
+          if (countError) throw countError;
+
+          if (adminCount?.length === 1) {
+            setError('Projenin son admin üyesinin rolünü değiştiremezsiniz.');
+            return;
+          }
+        }
+
+        // Admin, başka bir adminin rolünü değiştiremez
+        if (userRole === 'ADMIN' && existingMember.role === 'ADMIN') {
+          setError('Admin olarak başka bir adminin rolünü değiştiremezsiniz.');
+          return;
+        }
+
         // Üye güncelleme
         const { error: updateError } = await supabase
           .from('project_members')
@@ -119,13 +161,10 @@ export function MemberModal({
             role: selectedRole
           })
           .eq('id', existingMember.id)
-          .eq('project_id', projectId); // Ek güvenlik kontrolü
+          .eq('project_id', projectId);
 
-        if (updateError) {
-          console.error('Güncelleme hatası:', updateError);
-          throw updateError;
-        }
-        toast.success('Üye başarıyla güncellendi');
+        if (updateError) throw updateError;
+        toast.success('Üye rolü başarıyla güncellendi');
       } else {
         // Önce üyelik kontrolü yap
         const { data: existingCheck, error: checkError } = await supabase
@@ -151,10 +190,7 @@ export function MemberModal({
             role: selectedRole
           });
 
-        if (insertError) {
-          console.error('Ekleme hatası:', insertError);
-          throw insertError;
-        }
+        if (insertError) throw insertError;
         toast.success('Üye başarıyla eklendi');
       }
 
@@ -170,7 +206,7 @@ export function MemberModal({
   };
 
   const handleDelete = async () => {
-    if (!existingMember) return;
+    if (!existingMember || !canDeleteMember) return;
 
     setIsDeleting(true);
     setError(null);
@@ -179,12 +215,12 @@ export function MemberModal({
       const supabase = createClient();
       
       // Projedeki son admin kontrolü
-      if (existingMember.role === 'admin') {
+      if (existingMember.role === 'ADMIN') {
         const { data: adminCount, error: countError } = await supabase
           .from('project_members')
           .select('id', { count: 'exact' })
           .eq('project_id', projectId)
-          .eq('role', 'admin');
+          .eq('role', 'ADMIN');
 
         if (countError) throw countError;
 
@@ -198,12 +234,9 @@ export function MemberModal({
         .from('project_members')
         .delete()
         .eq('id', existingMember.id)
-        .eq('project_id', projectId); // Ek güvenlik kontrolü
+        .eq('project_id', projectId);
 
-      if (deleteError) {
-        console.error('Silme hatası:', deleteError);
-        throw deleteError;
-      }
+      if (deleteError) throw deleteError;
 
       toast.success('Üye başarıyla silindi');
       onSuccess();
@@ -248,7 +281,7 @@ export function MemberModal({
             <Select
               value={selectedUserId}
               onValueChange={setSelectedUserId}
-              disabled={loading || isDeleting || !!existingMember}
+              disabled={loading || isDeleting || !!existingMember || !canManageRoles}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Kullanıcı seçin" />
@@ -268,48 +301,67 @@ export function MemberModal({
             <Select
               value={selectedRole}
               onValueChange={setSelectedRole}
-              disabled={loading || isDeleting}
+              disabled={loading || isDeleting || !canManageRoles}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Rol seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Yönetici</SelectItem>
-                <SelectItem value="member">Üye</SelectItem>
-                <SelectItem value="viewer">Görüntüleyici</SelectItem>
+                {availableRoles.map(role => (
+                  <SelectItem key={role} value={role}>
+                    {role === 'ADMIN' ? 'Yönetici' :
+                     role === 'MEMBER' ? 'Üye' : 'İzleyici'}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="flex justify-between">
-          <div className="flex gap-2">
+          {existingMember && canDeleteMember && (
             <Button
-              variant="secondary"
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={loading || isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Siliniyor
+                </>
+              ) : (
+                'Üyeyi Sil'
+              )}
+            </Button>
+          )}
+          <div className="flex gap-2 ml-auto">
+            <Button
+              type="button"
+              variant="outline"
               onClick={handleClose}
               disabled={loading || isDeleting}
             >
               İptal
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={loading || isDeleting}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {existingMember ? 'Güncelle' : 'Ekle'}
-            </Button>
+            {canManageRoles && (
+              <Button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={loading || isDeleting}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {existingMember ? 'Güncelleniyor' : 'Ekleniyor'}
+                  </>
+                ) : (
+                  existingMember ? 'Güncelle' : 'Ekle'
+                )}
+              </Button>
+            )}
           </div>
-
-          {existingMember && (
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={loading || isDeleting}
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sil
-            </Button>
-          )}
         </div>
       </DialogContent>
     </Dialog>
