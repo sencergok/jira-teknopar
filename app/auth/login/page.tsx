@@ -19,8 +19,10 @@ export default function LoginPage() {
   }, []);
 
   return (
+
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 to-white overflow-hidden">
-      
+
+
       {/* 🌟 Mouse Takip Eden Glow Efekti */}
       <div 
         className="absolute w-[250px] h-[250px] bg-indigo-400 opacity-40 rounded-full filter blur-3xl pointer-events-none transition-transform duration-75 ease-out"
@@ -67,5 +69,8 @@ export default function LoginPage() {
       </div>
 
     </div>
+
+    
+    
   );
 }
