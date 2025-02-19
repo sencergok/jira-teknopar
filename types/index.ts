@@ -1,6 +1,13 @@
+// Core types
 export * from './task';
 export * from './project';
 export * from './user';
-export * from './ui';
-export * from './error';
+
+// UI specific types
+export type { ConfirmModalProps } from './ui/modal';
+
+// Error types
+export type { DatabaseError } from './error';
+
+// Realtime types
 export * from './realtime'; 

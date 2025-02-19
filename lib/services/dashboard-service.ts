@@ -3,6 +3,17 @@ import { DashboardStats, ProjectRecord, TaskStatusRecord } from '@/types/dashboa
 import { Project, ProjectMember } from '@/types/project';
 import { Task, TaskStatus } from '@/types/task';
 
+interface ProjectStats {
+  totalProjects: number;
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+}
+
+interface TaskRecord {
+  status: TaskStatus;
+}
+
 export class DashboardService {
   private static supabase = createClient();
 
@@ -64,13 +75,13 @@ export class DashboardService {
       if (projectsError) throw projectsError;
 
       // Transform the data to match the Project interface
-      return projects.map((project: any) => ({
+      return projects.map((project: Project) => ({
         ...project,
-        members: project.members.map((member: any) => ({
+        members: project.members?.map((member: ProjectMember) => ({
           id: member.id,
           role: member.role,
           user: member.user
-        }))
+        })) || []
       }));
     } catch (error) {
       console.error('Error fetching user projects:', error);
@@ -102,6 +113,42 @@ export class DashboardService {
       return data;
     } catch (error) {
       console.error('Error fetching recent tasks:', error);
+      throw error;
+    }
+  }
+
+  static async getProjectStats(userId: string): Promise<ProjectStats> {
+    try {
+      const supabase = createClient();
+
+      // Get projects where user is a member
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_members')
+        .select('project_id')
+        .eq('user_id', userId);
+
+      if (memberError) throw memberError;
+
+      const projectIds = memberProjects?.map((p: { project_id: string }) => p.project_id) || [];
+
+      // Get tasks for these projects
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('status')
+        .in('project_id', projectIds);
+
+      if (tasksError) throw tasksError;
+
+      const stats: ProjectStats = {
+        totalProjects: projectIds.length,
+        totalTasks: tasks?.length || 0,
+        completedTasks: tasks?.filter((t: TaskRecord) => t.status === TaskStatus.DONE).length || 0,
+        inProgressTasks: tasks?.filter((t: TaskRecord) => t.status === TaskStatus.IN_PROGRESS).length || 0,
+      };
+
+      return stats;
+    } catch (error) {
+      console.error('Dashboard stats error:', error);
       throw error;
     }
   }

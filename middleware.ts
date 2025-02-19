@@ -99,6 +99,40 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Proje sayfalarına erişim kontrolü
+  if (request.nextUrl.pathname.startsWith('/dashboard/projects/') && request.nextUrl.pathname !== '/dashboard/projects/new') {
+    const projectId = request.nextUrl.pathname.split('/')[3];
+    
+    if (!session) {
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+
+    try {
+      // Kullanıcının bu projeye erişim yetkisi var mı kontrol et
+      const { data: projectAccess, error } = await supabase
+        .from('project_members')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      const { data: isOwner, error: ownerError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', projectId)
+        .eq('created_by_id', session.user.id)
+        .maybeSingle();
+
+      if ((error && ownerError) || (!projectAccess && !isOwner)) {
+        // Yetkisiz erişim durumunda dashboard'a yönlendir
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    } catch (error) {
+      console.error('Proje erişim kontrolü hatası:', error);
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
   // Auth koruması gereken rotalar
   if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/auth/login', request.url));

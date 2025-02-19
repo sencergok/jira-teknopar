@@ -7,7 +7,7 @@ import { TaskModal } from './task-modal';
 import { useProjectPermissions } from '@/lib/hooks/use-project-permissions';
 import { useAuth } from '@/lib/hooks/use-auth';
 
-export function TaskCard({ task, onTaskClick, isDragging = false }: TaskCardProps) {
+export function TaskCard({ task, isDragging = false }: TaskCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
   const { permissions } = useProjectPermissions(task.project_id, user?.id);

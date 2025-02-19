@@ -7,8 +7,21 @@ export type Project = {
   description: string | null;
   created_at: string;
   created_by_id: string;
+  owner?: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  };
+  members?: ProjectMember[];
   project_members?: { user_id: string }[];
 };
+
+export interface ProjectMemberWithUser {
+  user: {
+    id: string;
+    name: string;
+  };
+}
 
 export interface DatabaseError {
   message: string;
@@ -49,16 +62,19 @@ export interface ProjectMetrics {
 }
 
 export interface ProjectSummaryProps {
-  project: Project;
-  metrics: ProjectMetrics;
+  projectId: string;
 }
 
-export interface ProjectModalProps {
+export type ProjectModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  project?: Project;
-  onProjectUpdate?: () => void;
-}
+  existingProject?: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+  onSuccess: () => void;
+};
 
 export type ProjectRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 
@@ -73,7 +89,7 @@ export interface ProjectPermissions {
   canComment: boolean;
 }
 
-export interface TaskModalProps {
+export interface ProjectTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;

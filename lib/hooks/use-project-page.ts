@@ -86,7 +86,7 @@ export function useProjectPage() {
     onMemberModalClose: closeMemberModal,
     selectedMember,
     onMemberSuccess: fetchProjectDetails,
-    userRole: role,
+    userRole: role || null,
 
     // Delete Modal Props
     isDeleteModalOpen,

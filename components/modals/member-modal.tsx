@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ProjectRole } from '@/types/project';
 
 interface MemberModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface MemberModalProps {
   projectId: string;
   existingMember?: {
     id: string;
-    role: string;
+    role: ProjectRole;
     user: {
       id: string;
       name: string;
@@ -24,7 +25,7 @@ interface MemberModalProps {
     };
   };
   onSuccess: () => void;
-  userRole?: string; // Mevcut kullanıcının rolü
+  userRole?: ProjectRole | null;
 }
 
 type User = {

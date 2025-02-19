@@ -22,6 +22,12 @@ interface UseTaskManagementProps {
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
 }
 
+interface DragEventData {
+  id: string;
+  status: TaskStatus;
+  type: 'task';
+}
+
 export function useTaskManagement({ projectId, tasks: initialTasks, onTaskMove }: UseTaskManagementProps) {
   // Drag & Drop State
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -174,8 +180,10 @@ export function useTaskManagement({ projectId, tasks: initialTasks, onTaskMove }
 
   // Event Handlers
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    setActiveId(active.id);
+    const data = event.active.data.current as DragEventData;
+    if (data?.type === 'task') {
+      setActiveId(event.active.id);
+    }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -195,139 +203,81 @@ export function useTaskManagement({ projectId, tasks: initialTasks, onTaskMove }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over) {
-      setActiveId(null);
-      setOverId(null);
-      return;
-    }
+    try {
+      const { active, over } = event;
+      if (!over) return;
 
-    const activeTask = tasks.find(t => t.id === active.id);
-    const overTask = tasks.find(t => t.id === over.id);
-    const overColumn = COLUMNS.find(col => col.id === over.id);
+      const activeTask = tasks.find(t => t.id === active.id);
+      if (!activeTask) return;
 
-    if (!activeTask) {
-      setActiveId(null);
-      setOverId(null);
-      return;
-    }
+      const overTask = tasks.find(t => t.id === over.id);
+      const overColumn = COLUMNS.find(c => c.id === over.id);
 
-    const supabase = createClient();
-    let retryCount = 0;
-    const maxRetries = 3;
+      if (!overTask && !overColumn) return;
 
-    const updateTasks = async () => {
-      try {
-        // Optimistic update
-        const updatedTasks = [...tasks];
-        const activeTaskIndex = updatedTasks.findIndex(t => t.id === activeTask.id);
+      // Update local state first for optimistic updates
+      const updatedTasks = [...tasks];
+      const activeTaskIndex = updatedTasks.findIndex(t => t.id === activeTask.id);
+
+      if (overTask) {
+        // Reorder within the same status
+        const tasksInSameStatus = updatedTasks
+          .filter(t => t.status === overTask.status)
+          .sort((a, b) => a.task_order.localeCompare(b.task_order));
         
-        if (overTask) {
-          // Reorder within the same status
-          const tasksInSameStatus = updatedTasks
-            .filter(t => t.status === overTask.status)
-            .sort((a, b) => a.task_order.localeCompare(b.task_order));
-          
-          const oldIndex = tasksInSameStatus.findIndex(t => t.id === activeTask.id);
-          const newIndex = tasksInSameStatus.findIndex(t => t.id === overTask.id);
-          
-          if (oldIndex !== -1 && newIndex !== -1) {
-            const newStatus = overTask.status;
-            const statusChanged = activeTask.status !== newStatus;
-
-            // Update local state first
-            if (statusChanged) {
-              updatedTasks[activeTaskIndex].status = newStatus;
-            }
-            
-            const newTasks = arrayMove(tasksInSameStatus, oldIndex, newIndex);
-            const taskOrders = newTasks.map((_, index) => 
-              ((index + 1) * 1000).toString().padStart(8, '0')
-            );
-
-            // Batch update for better performance
-            const updates = newTasks.map((task, index) => ({
-              id: task.id,
-              task_order: taskOrders[index],
-              status: overTask.status,
-              title: task.title,
-              updated_at: new Date().toISOString()
-            }));
-
-            const { error: batchError } = await supabase
-              .from('tasks')
-              .upsert(updates, {
-                onConflict: 'id'
-              });
-
-            if (batchError) {
-              throw new Error(batchError.message || 'Görevler güncellenirken bir hata oluştu');
-            }
-
-            // Notify about the move if status changed
-            if (activeTask.status !== overTask.status) {
-              onTaskMove(activeTask.id, overTask.status);
-            }
-          }
-        } else if (overColumn) {
-          // Move to a new status
-          const tasksInTargetStatus = updatedTasks
-            .filter(t => t.status === overColumn.id)
-            .sort((a, b) => a.task_order.localeCompare(b.task_order));
-
-          // Calculate new order with a large gap
-          let newOrder: string;
-          if (tasksInTargetStatus.length === 0) {
-            newOrder = '10000000';
-          } else {
-            const lastOrder = parseInt(tasksInTargetStatus[tasksInTargetStatus.length - 1].task_order);
-            newOrder = (lastOrder + 1000).toString().padStart(8, '0');
-          }
+        const oldIndex = tasksInSameStatus.findIndex(t => t.id === activeTask.id);
+        const newIndex = tasksInSameStatus.findIndex(t => t.id === overTask.id);
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newStatus = overTask.status;
+          const statusChanged = activeTask.status !== newStatus;
 
           // Update local state first
-          updatedTasks[activeTaskIndex].status = overColumn.id;
-          updatedTasks[activeTaskIndex].task_order = newOrder;
-
-          const { error: updateError } = await supabase
-            .from('tasks')
-            .update({
-              status: overColumn.id,
-              task_order: newOrder,
-              title: activeTask.title,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', activeTask.id);
-
-          if (updateError) {
-            throw new Error(updateError.message || 'Görev durumu güncellenirken bir hata oluştu');
+          if (statusChanged) {
+            updatedTasks[activeTaskIndex].status = newStatus;
           }
 
-          // Notify about the move
-          onTaskMove(activeTask.id, overColumn.id);
-        }
-      } catch (error: any) {
-        if (retryCount < maxRetries) {
-          retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
-          return updateTasks();
-        }
-        throw error;
-      }
-    };
+          // Update task order
+          const reorderedTasks = arrayMove(tasksInSameStatus, oldIndex, newIndex);
+          const taskIds = reorderedTasks.map(t => t.id);
 
-    try {
-      await updateTasks();
-    } catch (error: any) {
-      console.error('Task update error:', error);
+          // Update in database
+          const supabase = createClient();
+          const { error } = await supabase.rpc('update_task_orders', {
+            p_task_ids: taskIds,
+            p_task_orders: taskIds.map((_, index) => `${index + 1}`.padStart(5, '0')),
+            p_status: newStatus
+          });
+
+          if (error) throw error;
+        }
+      } else if (overColumn) {
+        // Move to a different status
+        const newStatus = overColumn.id;
+        if (activeTask.status !== newStatus) {
+          // Update in database
+          const supabase = createClient();
+          const { error } = await supabase
+            .from('tasks')
+            .update({ status: newStatus })
+            .eq('id', activeTask.id);
+
+          if (error) throw error;
+
+          // Update local state
+          updatedTasks[activeTaskIndex].status = newStatus;
+        }
+      }
+
+      setTasks(updatedTasks);
+      onTaskMove(activeTask.id, updatedTasks[activeTaskIndex].status);
+    } catch (error) {
+      console.error('Error updating task:', error);
       toast({
-        title: "Görev Güncelleme Hatası",
-        description: error.message || "Görev güncellenirken beklenmeyen bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.",
-        variant: "destructive"
+        title: 'Hata',
+        description: 'Görev güncellenirken bir hata oluştu.',
+        variant: 'destructive',
       });
-    } finally {
-      setActiveId(null);
-      setOverId(null);
     }
   };
 

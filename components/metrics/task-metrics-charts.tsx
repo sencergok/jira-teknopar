@@ -38,11 +38,10 @@ const PRIORITY_LABELS = {
 };
 
 interface TaskMetricsChartsProps {
-  projectId: string;
   tasks: Task[];
 }
 
-const TaskMetricsCharts: React.FC<TaskMetricsChartsProps> = ({ projectId, tasks }) => {
+const TaskMetricsCharts: React.FC<TaskMetricsChartsProps> = ({ tasks }) => {
   const [metrics, setMetrics] = useState<TaskMetrics>({
     statusDistribution: [],
     priorityDistribution: [],
