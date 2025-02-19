@@ -12,11 +12,4 @@ export interface AuthContextType {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   isLoading: boolean;
-}
-
-export interface DatabaseError {
-  code: string;
-  details?: string;
-  hint?: string;
-  message: string;
 } 

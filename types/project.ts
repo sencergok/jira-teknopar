@@ -1,9 +1,10 @@
 export interface Project {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   created_at: string;
   updated_at: string;
+  created_by_id: string;
   owner_id: string;
   is_private: boolean;
 }
@@ -14,11 +15,11 @@ export interface ProjectMember {
   user_id: string;
   role: 'OWNER' | 'ADMIN' | 'MEMBER';
   joined_at: string;
-  user?: {
+  user: {
     id: string;
+    name: string;
     email: string;
-    full_name?: string;
-    avatar_url?: string;
+    avatar_url: string | null;
   };
 }
 

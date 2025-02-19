@@ -18,11 +18,11 @@ import {
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 import { TaskCard } from './task-card';
-import { Button } from "@/components/ui/button";
-import { PlusIcon } from "@radix-ui/react-icons";
 import { TaskModal } from "@/components/modals/task-modal";
 import { Task, TaskStatus } from '@/types';
 import { KanbanColumn } from './kanban-column';
+import { ProjectService } from '@/lib/services/project-service';
+import { RealtimeService } from '@/lib/services/realtime-service';
 
 const COLUMNS = [
   { id: 'todo' as TaskStatus, title: 'Yapılacak' },
@@ -47,21 +47,24 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
   // Realtime subscription
   useEffect(() => {
-    const supabase = createClient();
-    const taskSubscription = supabase
-      .channel('public:tasks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload: { new: { id: string; status: TaskStatus } }) => {
-        console.log('Task değişikliği:', payload);
-        onTaskMove(payload.new.id, payload.new.status);
-      })
-      .subscribe();
+    const cleanup = RealtimeService.subscribeToProjectUpdates(
+      projectId,
+      (payload) => {
+        if (payload.eventType === 'UPDATE' && payload.new.status) {
+          onTaskMove(payload.new.id, payload.new.status);
+        }
+      },
+      () => {} // Member updates are handled at the page level
+    );
 
-    return () => {
-      supabase.removeChannel(taskSubscription);
-    };
-  }, [onTaskMove]);
+    return () => cleanup();
+  }, [projectId, onTaskMove]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -134,42 +137,7 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
     if (!activeTask || !overColumn) return;
 
     try {
-      const supabase = createClient();
-      
-      const { data: columnTasks, error: fetchError } = await supabase
-        .from('tasks')
-        .select('id, task_order')
-        .eq('status', overColumn.id)
-        .eq('project_id', projectId)
-        .order('task_order', { ascending: true });
-
-      if (fetchError) throw fetchError;
-
-      let newOrder: number;
-      
-      if (columnTasks.length === 0) {
-        // Kolon boşsa, başlangıç değeri
-        newOrder = 1000;
-      } else if (columnTasks.length === 1) {
-        // Kolonda tek görev varsa, onun altına ekle
-        newOrder = parseInt(columnTasks[0].task_order) + 1000;
-      } else {
-        // Görevler arasına eklemek için ortalama al
-        const lastTask = columnTasks[columnTasks.length - 1];
-        const secondLastTask = columnTasks[columnTasks.length - 2];
-        newOrder = (parseInt(lastTask.task_order) + parseInt(secondLastTask.task_order)) / 2;
-      }
-
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update({
-          status: overColumn.id,
-          task_order: String(newOrder),
-        })
-        .eq('id', activeTask.id);
-
-      if (updateError) throw updateError;
-
+      await ProjectService.updateTaskStatus(activeTask.id, overColumn.id, projectId);
     } catch (error) {
       console.error('Task update error:', error);
     }

@@ -1,5 +1,15 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high';
+export enum TaskStatus {
+  TODO = 'todo',
+  IN_PROGRESS = 'in_progress',
+  IN_REVIEW = 'in_review',
+  DONE = 'done'
+}
+
+export enum TaskPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high'
+}
 
 export interface AssignedUser {
   id: string;
@@ -19,6 +29,7 @@ export interface Task {
   project_id: string;
   created_at: string;
   updated_at: string;
+  completed_at?: string | null;
   assignedTo: AssignedUser | null;
 }
 
@@ -48,4 +59,11 @@ export interface TaskModalProps {
     canDeleteTask: boolean;
     canAssignTasks: boolean;
   };
+  projectMembers?: Array<{
+    user: {
+      id: string;
+      name: string;
+      avatar_url: string | null;
+    };
+  }>;
 } 
