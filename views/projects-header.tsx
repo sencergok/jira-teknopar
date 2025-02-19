@@ -23,52 +23,48 @@ export function ProjectHeader({
   onDeleteProject
 }: ProjectHeaderProps) {
   return (
-    <Card className="mb-8 border-none bg-white/50 backdrop-blur-sm shadow-lg">
+    <Card className="border-none bg-white/50 backdrop-blur-sm shadow-sm">
       <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <span className="text-xl font-bold text-primary">
-                  {project?.name?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <CardTitle className="text-2xl font-bold">{project?.name}</CardTitle>
-                <CardDescription className="mt-1 line-clamp-2">
-                  {project?.description || 'Açıklama eklenmemiş'}
-                </CardDescription>
-              </div>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle className="text-2xl font-semibold text-gray-900">
+              {project?.name}
+            </CardTitle>
+            <CardDescription className="mt-1 text-gray-500">
+              {project?.description || 'Açıklama eklenmemiş'}
+            </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             {permissions?.canCreateTasks && (
               <Button 
-                onClick={onNewTask} 
-                size="sm" 
-                className="shadow-sm hover:shadow-md transition-all duration-200"
+                onClick={onNewTask}
+                size="sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <PlusIcon className="mr-2 h-4 w-4" /> Yeni Görev
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Yeni Görev
               </Button>
             )}
             {permissions?.canEditProject && (
               <Button 
-                variant="outline" 
-                onClick={onEditProject} 
-                size="sm" 
-                className="shadow-sm hover:shadow-md transition-all duration-200"
+                variant="outline"
+                onClick={onEditProject}
+                size="sm"
+                className="text-gray-700 hover:text-gray-900"
               >
-                <Pencil1Icon className="mr-2 h-4 w-4" /> Projeyi Düzenle
+                <Pencil1Icon className="mr-2 h-4 w-4" />
+                Düzenle
               </Button>
             )}
             {permissions?.canDeleteProject && (
               <Button 
-                variant="destructive" 
-                onClick={onDeleteProject} 
-                size="sm" 
-                className="shadow-sm hover:shadow-md transition-all duration-200"
+                variant="destructive"
+                onClick={onDeleteProject}
+                size="sm"
+                className="bg-red-600 hover:bg-red-700"
               >
-                <TrashIcon className="mr-2 h-4 w-4" /> Sil
+                <TrashIcon className="mr-2 h-4 w-4" />
+                Sil
               </Button>
             )}
           </div>
