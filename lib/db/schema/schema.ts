@@ -3,9 +3,10 @@ import { relations } from 'drizzle-orm';
 
 // Rol enum'ını tanımlayalım
 export const ProjectRole = {
-  ADMIN: 'admin',
-  MEMBER: 'member',
-  VIEWER: 'viewer',
+  OWNER: 'OWNER',
+  ADMIN: 'ADMIN',
+  MEMBER: 'MEMBER',
+  VIEWER: 'VIEWER',
 } as const;
 
 export type ProjectRoleType = typeof ProjectRole[keyof typeof ProjectRole];

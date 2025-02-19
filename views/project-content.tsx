@@ -189,8 +189,10 @@ export function ProjectContent({
                         </div>
                         <div className="ml-3 flex items-center gap-3">
                           <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                            {member.role === 'ADMIN' ? 'Yönetici' : 
-                             member.role === 'MEMBER' ? 'Üye' : 'Proje Sahibi'}
+                            {member.role === 'OWNER' ? 'Proje Sahibi' :
+                             member.role === 'ADMIN' ? 'Yönetici' : 
+                             member.role === 'MEMBER' ? 'Üye' : 
+                             'İzleyici'}
                           </span>
                           {permissions?.canManageMembers && (
                             <Button

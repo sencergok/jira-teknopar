@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect, ChangeEvent } from 'react';
 import {
   DndContext, 
   DragOverlay,
@@ -9,67 +8,80 @@ import {
   useSensors,
   MouseSensor,
   TouchSensor,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
-  UniqueIdentifier,
   rectIntersection,
 } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
-import { TaskCard } from './task-card';
+import { TaskCard } from "@/components/task/task-card";
 import { TaskModal } from "@/components/modals/task-modal";
-import { Task, TaskStatus } from '@/types';
-import { KanbanColumn } from './kanban-column';
-import { ProjectService } from '@/lib/services/project-service';
-import { RealtimeService } from '@/lib/services/realtime-service';
-import { useDebounce } from '@/lib/hooks/use-debounce';
+import { Task, KanbanBoardProps } from '@/types';
+import { KanbanColumn } from './column';
+import { useTaskManagement } from '@/lib/hooks/use-task-management';
+import { useRealtimeSubscription } from '@/lib/hooks/use-realtime-subscription';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  PersonIcon,
+  MixerHorizontalIcon,
+} from "@radix-ui/react-icons";
 
-const COLUMNS = [
-  { id: 'todo' as TaskStatus, title: 'Yapılacak' },
-  { id: 'in_progress' as TaskStatus, title: 'Devam Ediyor' },
-  { id: 'in_review' as TaskStatus, title: 'İncelemede' },
-  { id: 'done' as TaskStatus, title: 'Tamamlandı' },
+const priorityOptions = [
+  { value: 'all', label: 'Tüm Öncelikler' },
+  { value: 'high', label: 'Yüksek Öncelik' },
+  { value: 'medium', label: 'Orta Öncelik' },
+  { value: 'low', label: 'Düşük Öncelik' },
 ] as const;
-
-interface KanbanBoardProps {
-  projectId: string;
-  tasks: Task[];
-  onTaskMove: (taskId: string, newStatus: Task['status']) => void;
-  onTaskClick: (taskId: string) => void;
-}
 
 export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTaskClick }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<'all' | Task['priority']>('all');
-  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
-  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
     setTasks(initialTasks);
   }, [initialTasks]);
 
-  // Debounce search term and filters
-  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
-  const debouncedPriorityFilter = useDebounce(priorityFilter, 1000);
-  const debouncedAssigneeFilter = useDebounce(assigneeFilter, 1000);
+  const {
+    // State
+    activeId,
+    selectedTask,
+    isTaskModalOpen,
+    searchTerm,
+    priorityFilter,
+    assigneeFilter,
+    sortDirection,
+    
+    // Setters
+    setIsTaskModalOpen,
+    setSearchTerm,
+    setPriorityFilter,
+    setAssigneeFilter,
+    setSortDirection,
+    
+    // Computed Values
+    assignees,
+    filteredTasks,
+    COLUMNS,
+    
+    // Event Handlers
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+    handleTaskClick,
+  } = useTaskManagement({ 
+    projectId, 
+    tasks, 
+    onTaskMove 
+  });
 
-  // Realtime subscription
-  useEffect(() => {
-    const cleanup = RealtimeService.subscribeToProjectUpdates(
-      projectId,
-      (payload) => {
-        if (payload.eventType === 'UPDATE' && payload.new.status) {
-          onTaskMove(payload.new.id, payload.new.status);
-        }
-      },
-      () => {} // Member updates are handled at the page level
-    );
-
-    return () => cleanup();
-  }, [projectId, onTaskMove]);
+  useRealtimeSubscription(projectId, onTaskMove);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -85,134 +97,161 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
     })
   );
 
-  // Benzersiz atanan kişileri al
-  const assignees = useMemo(() => {
-    const uniqueAssignees = new Set();
-    tasks.forEach(task => {
-      if (task.assignedTo) {
-        uniqueAssignees.add(JSON.stringify(task.assignedTo));
-      }
-    });
-    return Array.from(uniqueAssignees).map(assignee => JSON.parse(assignee as string));
-  }, [tasks]);
-
-  // Filtered tasks with search term and filters
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        (task.description?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase());
-  
-      const matchesPriority = debouncedPriorityFilter === 'all' || task.priority === debouncedPriorityFilter;
-      
-      const matchesAssignee = debouncedAssigneeFilter === 'all' ||
-        (debouncedAssigneeFilter === 'unassigned' && !task.assignedTo) ||
-        (task.assignedTo?.id === debouncedAssigneeFilter);
-  
-      return matchesSearch && matchesPriority && matchesAssignee;
-    });
-  }, [tasks, debouncedSearchTerm, debouncedPriorityFilter, debouncedAssigneeFilter]);
-  
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeTask = tasks.find(t => t.id === active.id);
-    const overColumn = COLUMNS.find(col => col.id === over.id);
-
-    if (!activeTask || !overColumn) return;
-
-    // If the task is already in this column, do nothing
-    if (activeTask.status === overColumn.id) return;
-
-    onTaskMove(activeTask.id, overColumn.id);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over) return;
-
-    const activeTask = tasks.find(t => t.id === active.id);
-    const overColumn = COLUMNS.find(col => col.id === over.id);
-
-    if (!activeTask || !overColumn) return;
-
-    try {
-      await ProjectService.updateTaskStatus(activeTask.id, overColumn.id, projectId);
-    } catch (error) {
-      console.error('Task update error:', error);
-    }
-
-    setActiveId(null);
-  };
-
-  // Görev tıklama işleyicisi
-  const handleTaskClick = (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      setSelectedTask(task);
-      setIsTaskModalOpen(true);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {/* Filtreler */}
+      {/* Filters */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <label htmlFor="search" className="block text-sm font-medium text-gray-700">
-            Ara
-          </label>
+        <div className="space-y-2">
+          <Label htmlFor="search">Ara</Label>
           <input
-            type="text"
             id="search"
+            type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             placeholder="Görev ara..."
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
-        <div>
-          <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
-            Öncelik
-          </label>
-          <select
-            id="priority"
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value as 'all' | Task['priority'])}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          >
-            <option value="all">Tümü</option>
-            <option value="low">Düşük</option>
-            <option value="medium">Orta</option>
-            <option value="high">Yüksek</option>
-          </select>
+        <div className="space-y-2">
+          <Label>Öncelik</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <MixerHorizontalIcon className="h-4 w-4" />
+                  <span>
+                    {priorityOptions.find(opt => opt.value === priorityFilter)?.label || 'Tüm Öncelikler'}
+                  </span>
+                </div>
+                {sortDirection === 'asc' ? (
+                  <ArrowUpIcon className="h-4 w-4 ml-2" />
+                ) : (
+                  <ArrowDownIcon className="h-4 w-4 ml-2" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Önceliğe Göre Sırala</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {priorityOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => {
+                    if (priorityFilter === option.value) {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setPriorityFilter(option.value as any);
+                    }
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  <span>{option.label}</span>
+                  {priorityFilter === option.value && (
+                    sortDirection === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4" />
+                    )
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <div>
-          <label htmlFor="assignee" className="block text-sm font-medium text-gray-700">
-            Atanan Kişi
-          </label>
-          <select
-            id="assignee"
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          >
-            <option value="all">Tümü</option>
-            <option value="unassigned">Atanmamış</option>
-            {assignees.map((assignee: any) => (
-              <option key={assignee.id} value={assignee.id}>
-                {assignee.name}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-2">
+          <Label>Atanan Kişi</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <PersonIcon className="h-4 w-4" />
+                  <span>
+                    {assigneeFilter === 'all' ? 'Tüm Kişiler' :
+                     assigneeFilter === 'unassigned' ? 'Atanmamış' :
+                     assignees.find(a => a.id === assigneeFilter)?.name || 'Tüm Kişiler'}
+                  </span>
+                </div>
+                {sortDirection === 'asc' ? (
+                  <ArrowUpIcon className="h-4 w-4 ml-2" />
+                ) : (
+                  <ArrowDownIcon className="h-4 w-4 ml-2" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Kişiye Göre Sırala</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  if (assigneeFilter === 'all') {
+                    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setAssigneeFilter('all');
+                  }
+                }}
+                className="flex items-center justify-between"
+              >
+                <span>Tüm Kişiler</span>
+                {assigneeFilter === 'all' && (
+                  sortDirection === 'asc' ? (
+                    <ArrowUpIcon className="h-4 w-4" />
+                  ) : (
+                    <ArrowDownIcon className="h-4 w-4" />
+                  )
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (assigneeFilter === 'unassigned') {
+                    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setAssigneeFilter('unassigned');
+                  }
+                }}
+                className="flex items-center justify-between"
+              >
+                <span>Atanmamış</span>
+                {assigneeFilter === 'unassigned' && (
+                  sortDirection === 'asc' ? (
+                    <ArrowUpIcon className="h-4 w-4" />
+                  ) : (
+                    <ArrowDownIcon className="h-4 w-4" />
+                  )
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {assignees.map((assignee) => (
+                <DropdownMenuItem
+                  key={assignee.id}
+                  onClick={() => {
+                    if (assigneeFilter === assignee.id) {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setAssigneeFilter(assignee.id);
+                    }
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  <span>{assignee.name}</span>
+                  {assigneeFilter === assignee.id && (
+                    sortDirection === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4" />
+                    )
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -251,18 +290,17 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
         )}
       </DndContext>
 
-      {/* Task Modal for editing */}
+      {/* Task Modal */}
       <TaskModal
         isOpen={isTaskModalOpen}
-        onClose={() => {
-          setIsTaskModalOpen(false);
-          setSelectedTask(null);
-        }}
+        onClose={() => setIsTaskModalOpen(false)}
         projectId={projectId}
         existingTask={selectedTask || undefined}
         onSuccess={() => {
           setIsTaskModalOpen(false);
-          setSelectedTask(null);
+          if (selectedTask) {
+            onTaskMove(selectedTask.id, selectedTask.status);
+          }
         }}
         permissions={{
           canEditTask: true,
@@ -272,4 +310,4 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
       />
     </div>
   );
-}
+} 

@@ -1,46 +1,120 @@
 import { useCallback, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ProjectRole, ProjectRoleType } from '@/lib/db/schema/schema';
-
-export type ProjectPermissions = {
-  canEditProject: boolean;
-  canDeleteProject: boolean;
-  canManageMembers: boolean;
-  canCreateTasks: boolean;
-  canEditTasks: boolean;
-  canDeleteTasks: boolean;
-  canAssignTasks: boolean;
-  canComment: boolean;
-};
+import { ProjectRole, ProjectPermissions } from '@/types/project';
 
 export function useProjectPermissions(projectId: string, userId: string | undefined) {
-  const [permissions, setPermissions] = useState<ProjectPermissions | null>(null);
-  const [role, setRole] = useState<ProjectRoleType | null>(null);
+  const [permissions, setPermissions] = useState<ProjectPermissions>({
+    canEditProject: false,
+    canDeleteProject: false,
+    canManageMembers: false,
+    canCreateTasks: false,
+    canEditTasks: false,
+    canDeleteTasks: false,
+    canAssignTasks: false,
+    canComment: false
+  });
+  const [role, setRole] = useState<ProjectRole | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   const checkRole = useCallback(async () => {
     if (!userId) {
       setRole(null);
+      setIsOwner(false);
       return;
     }
 
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
+      
+      // Projenin sahibini kontrol et
+      const { data: projectData } = await supabase
+        .from('projects')
+        .select('created_by_id')
+        .eq('id', projectId)
+        .single();
+
+      const isProjectOwner = projectData?.created_by_id === userId;
+      setIsOwner(isProjectOwner);
+
+      // Kullanıcının proje üyeliğini kontrol et
+      const { data: memberData, error: memberError } = await supabase
         .from('project_members')
         .select('role')
         .eq('project_id', projectId)
         .eq('user_id', userId)
         .single();
 
-      if (error || !data) {
-        setRole(null);
-        return;
+      // Rol ataması
+      let currentRole: ProjectRole | null = null;
+
+      if (isProjectOwner) {
+        currentRole = 'OWNER';
+      } else if (memberData && !memberError) {
+        currentRole = memberData.role as ProjectRole;
       }
-      
-      setRole(data.role as ProjectRoleType);
+
+      setRole(currentRole);
+
+      // Yetkileri role göre ayarla
+      const newPermissions: ProjectPermissions = {
+        canEditProject: false,
+        canDeleteProject: false,
+        canManageMembers: false,
+        canCreateTasks: false,
+        canEditTasks: false,
+        canDeleteTasks: false,
+        canAssignTasks: false,
+        canComment: false
+      };
+
+      if (currentRole === 'OWNER') {
+        // OWNER - Tüm yetkiler
+        Object.keys(newPermissions).forEach(key => {
+          newPermissions[key as keyof ProjectPermissions] = true;
+        });
+      } else if (currentRole === 'ADMIN') {
+        // ADMIN - Üye yönetimi ve görev yönetimi yetkileri
+        newPermissions.canEditProject = true;
+        newPermissions.canDeleteProject = false; // Sadece OWNER silebilir
+        newPermissions.canManageMembers = true;
+        newPermissions.canCreateTasks = true;
+        newPermissions.canEditTasks = true;
+        newPermissions.canDeleteTasks = true;
+        newPermissions.canAssignTasks = true;
+        newPermissions.canComment = true;
+      } else if (currentRole === 'MEMBER') {
+        // MEMBER - Sadece görev yönetimi yetkileri
+        newPermissions.canEditProject = false;
+        newPermissions.canDeleteProject = false;
+        newPermissions.canManageMembers = false;
+        newPermissions.canCreateTasks = true;
+        newPermissions.canEditTasks = true;
+        newPermissions.canDeleteTasks = false;
+        newPermissions.canAssignTasks = true;
+        newPermissions.canComment = true;
+      } else if (currentRole === 'VIEWER') {
+        // VIEWER - Sadece görüntüleme yetkileri
+        Object.keys(newPermissions).forEach(key => {
+          newPermissions[key as keyof ProjectPermissions] = false;
+        });
+        newPermissions.canComment = true; // Viewer sadece yorum yapabilir
+      }
+
+      setPermissions(newPermissions);
     } catch (error) {
       console.error('Rol kontrolü hatası:', error);
       setRole(null);
+      setIsOwner(false);
+      setPermissions({
+        canEditProject: false,
+        canDeleteProject: false,
+        canManageMembers: false,
+        canCreateTasks: false,
+        canEditTasks: false,
+        canDeleteTasks: false,
+        canAssignTasks: false,
+        canComment: false
+      });
     }
   }, [projectId, userId]);
 
@@ -48,70 +122,5 @@ export function useProjectPermissions(projectId: string, userId: string | undefi
     checkRole();
   }, [checkRole]);
 
-  useEffect(() => {
-    // Varsayılan olarak tüm izinler kapalı
-    const defaultPermissions: ProjectPermissions = {
-      canEditProject: false,
-      canDeleteProject: false,
-      canManageMembers: false,
-      canCreateTasks: false,
-      canEditTasks: false,
-      canDeleteTasks: false,
-      canAssignTasks: false,
-      canComment: false,
-    };
-
-    // Kullanıcı projede değilse veya rolü yoksa
-    if (!role) {
-      setPermissions(defaultPermissions);
-      return;
-    }
-
-    switch (role) {
-      case ProjectRole.ADMIN:
-        // Admin tüm yetkilere sahip
-        setPermissions({
-          canEditProject: true,
-          canDeleteProject: true,
-          canManageMembers: true,
-          canCreateTasks: true,
-          canEditTasks: true,
-          canDeleteTasks: true,
-          canAssignTasks: true,
-          canComment: true,
-        });
-        break;
-
-      case ProjectRole.MEMBER:
-        // Member sınırlı yetkilere sahip
-        setPermissions({
-          canEditProject: false,
-          canDeleteProject: false,
-          canManageMembers: false,
-          canCreateTasks: true,
-          canEditTasks: true,
-          canDeleteTasks: false,
-          canAssignTasks: true,
-          canComment: true,
-        });
-        break;
-
-      case ProjectRole.VIEWER:
-        // Viewer sadece görüntüleme ve yorum yapma yetkisine sahip
-        setPermissions({
-          ...defaultPermissions,
-          canComment: true,
-        });
-        break;
-
-      default:
-        setPermissions(defaultPermissions);
-    }
-  }, [role]);
-
-  return {
-    permissions,
-    role,
-    checkRole,
-  };
+  return { permissions, role, isOwner, checkRole };
 } 

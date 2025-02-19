@@ -54,4 +54,8 @@ export type ToastProps = ToasterProps & {
   title?: string;
   description?: string;
   action?: React.ReactNode;
-} 
+}
+
+export * from './ui/modal';
+export * from './ui/chart';
+export * from './kanban'; 

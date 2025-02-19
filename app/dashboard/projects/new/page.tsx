@@ -128,7 +128,7 @@ export default function NewProjectPage() {
           {
             project_id: projectData.id,
             user_id: session.user.id,
-            role: 'admin',
+            role: 'OWNER',
           },
         ]);
 

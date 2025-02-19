@@ -73,6 +73,7 @@ export interface ProjectModalsProps {
   onMemberModalClose: () => void;
   selectedMember: ProjectMember | null;
   onMemberSuccess: () => void;
+  userRole?: string;
 
   // Delete Modal Props
   isDeleteModalOpen: boolean;

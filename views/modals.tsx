@@ -30,6 +30,7 @@ interface ProjectModalsProps {
   onMemberModalClose: () => void;
   selectedMember: ProjectMember | null;
   onMemberSuccess: () => void;
+  userRole?: string;
 
   // Delete Modal Props
   isDeleteModalOpen: boolean;
@@ -59,6 +60,7 @@ export function ProjectModals({
   onMemberModalClose,
   selectedMember,
   onMemberSuccess,
+  userRole,
 
   // Delete Modal Props
   isDeleteModalOpen,
@@ -76,6 +78,7 @@ export function ProjectModals({
         projectId={projectId}
         existingMember={selectedMember || undefined}
         onSuccess={onMemberSuccess}
+        userRole={userRole}
       />
 
       <TaskModal

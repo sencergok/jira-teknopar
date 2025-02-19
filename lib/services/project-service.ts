@@ -187,4 +187,27 @@ export class ProjectService {
       throw error;
     }
   }
+
+  static async updateTaskOrder(taskId: string, status: string, taskIds: string[]) {
+    const supabase = createClient();
+
+    // Calculate new task orders
+    const newTaskOrders = taskIds.map((id, index) => ({
+      id,
+      task_order: `${index + 1}`.padStart(5, '0') // 00001, 00002, etc.
+    }));
+
+    // Update all tasks in the transaction
+    const { error } = await supabase.rpc('update_task_orders', {
+      p_task_ids: taskIds,
+      p_task_orders: newTaskOrders.map(t => t.task_order),
+      p_status: status
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  }
 } 

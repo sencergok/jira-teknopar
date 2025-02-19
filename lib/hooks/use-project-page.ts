@@ -7,7 +7,7 @@ import { useProjectModals } from '@/lib/hooks/use-project-modals';
 export function useProjectPage() {
   const params = useParams();
   const { user } = useAuth();
-  const { permissions } = useProjectPermissions(params.id as string, user?.id || '');
+  const { permissions, role } = useProjectPermissions(params.id as string, user?.id || '');
 
   const {
     project,
@@ -86,6 +86,7 @@ export function useProjectPage() {
     onMemberModalClose: closeMemberModal,
     selectedMember,
     onMemberSuccess: fetchProjectDetails,
+    userRole: role,
 
     // Delete Modal Props
     isDeleteModalOpen,
