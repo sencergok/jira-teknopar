@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Task, TaskStatus, KanbanColumnProps } from '@/types';
+import { TaskStatus, KanbanColumnProps } from '@/types';
 import { TaskCard } from '@/components/task/task-card';
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "@radix-ui/react-icons";

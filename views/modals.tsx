@@ -2,7 +2,7 @@ import { TaskModal } from '@/components/modals/task-modal';
 import { ProjectModal } from '@/components/modals/project-modal';
 import { MemberModal } from '@/components/modals/member-modal';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
-import { Project, ProjectMember } from '@/types/project';
+import { Project, ProjectMember, ProjectRole } from '@/types/project';
 import { Task } from '@/types/task';
 
 interface ProjectModalsProps {
@@ -30,7 +30,7 @@ interface ProjectModalsProps {
   onMemberModalClose: () => void;
   selectedMember: ProjectMember | null;
   onMemberSuccess: () => void;
-  userRole?: string;
+  userRole?: ProjectRole | null;
 
   // Delete Modal Props
   isDeleteModalOpen: boolean;

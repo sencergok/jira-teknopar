@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Task, TaskStatus } from "@/types/task";
+import { ProjectSummaryProps } from '@/types/project';
+import { TaskStatus } from '@/types/task';
 import { useEffect, useState } from "react";
 import { ProjectService } from "@/lib/services/project-service";
 
@@ -10,10 +11,6 @@ interface ProjectStats {
   inProgressTasks: number;
   todoTasks: number;
   completionRate: number;
-}
-
-interface ProjectSummaryProps {
-  projectId: string;
 }
 
 export function ProjectSummary({ projectId }: ProjectSummaryProps) {

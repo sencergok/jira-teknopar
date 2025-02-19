@@ -2,6 +2,39 @@ import { createClient } from '@/lib/supabase/client';
 import { Project, ProjectMember } from '@/types/project';
 import { Task } from '@/types/task';
 
+interface ProjectMemberWithUser {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar_url: string | null;
+  };
+}
+
+interface TaskWithUser {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  task_order: string;
+  created_by_id: string;
+  assigned_to_id: string | null;
+  project_id: string;
+  created_at: string;
+  updated_at: string;
+  assigned_user: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  } | null;
+}
+
 export class ProjectService {
   private static supabase = createClient();
 
@@ -74,7 +107,7 @@ export class ProjectService {
       if (membersError) throw membersError;
 
       // Transform the data to match our types
-      const transformedMembers = membersData.map((member: any) => ({
+      const transformedMembers = membersData.map((member: ProjectMemberWithUser) => ({
         id: member.id,
         project_id: member.project_id,
         user_id: member.user_id,
@@ -88,7 +121,7 @@ export class ProjectService {
         }
       })) as ProjectMember[];
 
-      const transformedTasks = tasksData.map((task: any) => ({
+      const transformedTasks = tasksData.map((task: TaskWithUser) => ({
         id: task.id,
         title: task.title,
         description: task.description,

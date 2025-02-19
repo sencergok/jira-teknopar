@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import { Task, TaskStatus } from '@/types/task';
+import { Task } from '@/types/task';
 import { ProjectMember } from '@/types/project';
 import { RealtimeTaskPayload, RealtimeMemberPayload, SupabaseRealtimePayload } from '@/types/realtime';
 

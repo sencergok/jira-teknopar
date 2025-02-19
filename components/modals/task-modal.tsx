@@ -5,41 +5,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { ConfirmModal } from './confirm-modal';
-
-interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  task_order: string;
-  created_by_id: string;
-  assigned_to_id: string | null;
-  assignedTo: {
-    id: string;
-  } | null;
-}
-
-interface TaskModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  projectId: string;
-  projectMembers?: Array<{
-    user: {
-      id: string;
-      name: string;
-      avatar_url: string | null;
-    }
-  }>;
-  existingTask?: Task;
-  onSuccess: () => void;
-  permissions?: {
-    canEditTask?: boolean;
-    canDeleteTask?: boolean;
-    canAssignTasks?: boolean;
-  };
-  initialStatus?: string;
-}
+import { TaskStatus, TaskPriority, TaskModalProps } from '@/types/task';
 
 export function TaskModal({
   isOpen,
@@ -54,9 +20,9 @@ export function TaskModal({
   const { user } = useAuth();
   const [title, setTitle] = useState(existingTask?.title || '');
   const [description, setDescription] = useState(existingTask?.description || '');
-  const [priority, setPriority] = useState<string>(existingTask?.priority || 'medium');
-  const [status, setStatus] = useState<string>(existingTask?.status || initialStatus || 'todo');
-  const [assignedToId, setAssignedToId] = useState<string | undefined>(existingTask?.assigned_to_id || undefined);
+  const [priority, setPriority] = useState<TaskPriority>(existingTask?.priority || TaskPriority.MEDIUM);
+  const [status, setStatus] = useState<TaskStatus>(existingTask?.status || initialStatus || TaskStatus.TODO);
+  const [assignedToId, setAssignedToId] = useState<string | null>(existingTask?.assigned_to_id || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -66,9 +32,9 @@ export function TaskModal({
   const resetForm = useCallback(() => {
     setTitle('');
     setDescription('');
-    setStatus(initialStatus || 'todo');
-    setPriority('medium');
-    setAssignedToId('');
+    setStatus(initialStatus || TaskStatus.TODO);
+    setPriority(TaskPriority.MEDIUM);
+    setAssignedToId(null);
     setError(null);
   }, [initialStatus]);
 
@@ -148,7 +114,7 @@ export function TaskModal({
         }
       }
 
-      onSuccess();
+      onSuccess?.();
       onClose();
     } catch (err) {
       console.error('Görev işlemi hatası:', err);
@@ -175,7 +141,7 @@ export function TaskModal({
 
       if (deleteError) throw deleteError;
 
-      onSuccess();
+      onSuccess?.();
       onClose();
     } catch (err) {
       console.error('Görev silme hatası:', err);
@@ -259,13 +225,13 @@ export function TaskModal({
                             id="status"
                             name="status"
                             value={status}
-                            onChange={(e) => setStatus(e.target.value)}
+                            onChange={(e) => setStatus(e.target.value as TaskStatus)}
                             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           >
-                            <option value="todo">Yapılacak</option>
-                            <option value="in_progress">Devam Ediyor</option>
-                            <option value="in_review">İncelemede</option>
-                            <option value="done">Tamamlandı</option>
+                            <option value={TaskStatus.TODO}>Yapılacak</option>
+                            <option value={TaskStatus.IN_PROGRESS}>Devam Ediyor</option>
+                            <option value={TaskStatus.IN_REVIEW}>İncelemede</option>
+                            <option value={TaskStatus.DONE}>Tamamlandı</option>
                           </select>
                         </div>
                       </div>
@@ -279,12 +245,12 @@ export function TaskModal({
                             id="priority"
                             name="priority"
                             value={priority}
-                            onChange={(e) => setPriority(e.target.value)}
+                            onChange={(e) => setPriority(e.target.value as TaskPriority)}
                             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           >
-                            <option value="low">Düşük</option>
-                            <option value="medium">Orta</option>
-                            <option value="high">Yüksek</option>
+                            <option value={TaskPriority.LOW}>Düşük</option>
+                            <option value={TaskPriority.MEDIUM}>Orta</option>
+                            <option value={TaskPriority.HIGH}>Yüksek</option>
                           </select>
                         </div>
                       </div>
@@ -298,8 +264,11 @@ export function TaskModal({
                         <select
                           id="assignedTo"
                           name="assignedTo"
-                          value={assignedToId}
-                          onChange={(e) => setAssignedToId(e.target.value)}
+                          value={assignedToId ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setAssignedToId(value === '' ? null : value);
+                          }}
                           disabled={!canAssign}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >

@@ -13,7 +13,7 @@ import {
 import { createPortal } from 'react-dom';
 import { TaskCard } from "@/components/task/task-card";
 import { TaskModal } from "@/components/modals/task-modal";
-import { Task, KanbanBoardProps } from '@/types';
+import { Task, KanbanBoardProps, TaskPriority } from '@/types';
 import { KanbanColumn } from './column';
 import { useTaskManagement } from '@/lib/hooks/use-task-management';
 import { useRealtimeSubscription } from '@/lib/hooks/use-realtime-subscription';
@@ -41,7 +41,7 @@ const priorityOptions = [
   { value: 'low', label: 'Düşük Öncelik' },
 ] as const;
 
-export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTaskClick }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
                     if (priorityFilter === option.value) {
                       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
                     } else {
-                      setPriorityFilter(option.value as any);
+                      setPriorityFilter(option.value as TaskPriority | 'all');
                     }
                   }}
                   className="flex items-center justify-between"

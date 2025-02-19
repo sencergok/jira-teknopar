@@ -3,17 +3,7 @@
 import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { createClient } from '@/lib/supabase/client';
-
-type ProjectModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  existingProject?: {
-    id: string;
-    name: string;
-    description: string | null;
-  };
-  onSuccess: () => void;
-};
+import { ProjectModalProps } from '@/types/project';
 
 export function ProjectModal({
   isOpen,

@@ -1,4 +1,4 @@
-import { Project, ProjectMember } from './project';
+import { Project, ProjectMember, ProjectRole } from './project';
 import { Task } from './task';
 
 export interface ProjectRecord {
@@ -73,7 +73,7 @@ export interface ProjectModalsProps {
   onMemberModalClose: () => void;
   selectedMember: ProjectMember | null;
   onMemberSuccess: () => void;
-  userRole?: string;
+  userRole?: ProjectRole | null;
 
   // Delete Modal Props
   isDeleteModalOpen: boolean;

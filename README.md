@@ -1,41 +1,98 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Jira Teknopar - Proje Yönetim Sistemi
 
-## Getting Started
+Modern ve kullanıcı dostu bir proje yönetim sistemi.
 
-First, run the development server:
+## 🚀 Özellikler
 
+- **Kanban Board**: Sürükle-bırak arayüzü ile görev yönetimi
+- **Gerçek Zamanlı Güncelleme**: Anlık task güncellemeleri ve senkronizasyon
+- **Rol Tabanlı Yetkilendirme**: OWNER, ADMIN, MEMBER ve VIEWER rolleri
+- **Proje Metrikleri**: Detaylı proje ve görev istatistikleri
+- **Responsive Tasarım**: Mobil uyumlu arayüz
+
+## 🛠️ Teknolojiler
+
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Realtime)
+- **State Management**: React Hooks
+- **UI Components**: shadcn/ui
+- **Drag & Drop**: @dnd-kit/core
+- **Authentication**: Supabase Auth
+
+## 📦 Kurulum
+
+1. Repoyu klonlayın:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/sencergok/jira-teknopar.git
+cd jira-teknopar
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Bağımlılıkları yükleyin:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Supabase projenizi oluşturun ve .env dosyasını yapılandırın:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Geliştirme sunucusunu başlatın:
+```bash
+npm run dev
+```
 
-## Learn More
+## 🏗️ Proje Yapısı
 
-To learn more about Next.js, take a look at the following resources:
+```
+jira-teknopar/
+├── app/                    # Next.js app router
+├── components/            # React bileşenleri
+│   ├── kanban/           # Kanban board bileşenleri
+│   ├── task/             # Task ile ilgili bileşenler
+│   ├── project/          # Proje bileşenleri
+│   ├── ui/               # Genel UI bileşenleri
+│   └── modals/           # Modal bileşenleri
+├── lib/                   # Yardımcı fonksiyonlar
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # Servis katmanı
+│   ├── supabase/         # Supabase konfigürasyonu
+│   └── db/               # Veritabanı şemaları
+├── types/                # TypeScript tip tanımlamaları
+└── views/                # Sayfa görünümleri
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔐 Rol ve İzinler
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **OWNER**: Tüm yetkilere sahip
+- **ADMIN**: Proje düzenleme ve üye yönetimi
+- **MEMBER**: Görev oluşturma ve düzenleme
+- **VIEWER**: Sadece görüntüleme ve yorum yapma
 
-## Deploy on Vercel
+## 🔄 Realtime Özellikler
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Task durumu güncellemeleri
+- Task sıralaması değişiklikleri
+- Üye atamaları ve güncellemeleri
+- Proje değişiklikleri
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# jira-teknopar
-Teknopar 2025 staj projesi.
->>>>>>> c9f6d2cae249316735a80990c1d8a48339e9c144
+## 📱 Responsive Tasarım
+
+- Mobil uyumlu Kanban board
+- Adaptif UI bileşenleri
+- Touch-friendly sürükle-bırak
+
+## 🤝 Katkıda Bulunma
+
+1. Fork'layın
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Commit'leyin (`git commit -m 'feat: add amazing feature'`)
+4. Push'layın (`git push origin feature/amazing-feature`)
+5. Pull Request oluşturun
+
+
+## 👥 Ekip
+
+- Sencer Gök
+- Salih Elçiçek

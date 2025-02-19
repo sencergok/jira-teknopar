@@ -4,10 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TaskModalProps } from '@/types/project';
+import { ProjectTaskModalProps } from '@/types/project';
 import { TaskPriority, TaskStatus, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from '@/types/task';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/lib/hooks/use-toast';
+
+interface ProjectMemberWithUser {
+  user: {
+    id: string;
+    name: string;
+  };
+}
 
 export function TaskModal({ 
   isOpen, 
@@ -17,7 +24,7 @@ export function TaskModal({
   initialStatus,
   permissions,
   onSuccess 
-}: TaskModalProps) {
+}: ProjectTaskModalProps) {
   const [title, setTitle] = useState(existingTask?.title || '');
   const [description, setDescription] = useState(existingTask?.description || '');
   const [status, setStatus] = useState<TaskStatus>(existingTask?.status || initialStatus || TaskStatus.TODO);
@@ -64,7 +71,7 @@ export function TaskModal({
         if (error) throw error;
 
         if (data) {
-          setProjectMembers(data.filter((member: any) => member?.user));
+          setProjectMembers(data.filter((member: ProjectMemberWithUser) => member?.user));
         }
       } catch (error) {
         console.error('Project members fetch error:', error);
@@ -79,7 +86,7 @@ export function TaskModal({
     if (isOpen) {
       fetchProjectMembers();
     }
-  }, [projectId, isOpen]);
+  }, [projectId, isOpen, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,11 +143,11 @@ export function TaskModal({
 
       onSuccess?.();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Task operation error:', error);
       toast({
         title: "Hata",
-        description: error.message || "İşlem sırasında bir hata oluştu",
+        description: error instanceof Error ? error.message : "İşlem sırasında bir hata oluştu",
         variant: "destructive",
       });
     } finally {

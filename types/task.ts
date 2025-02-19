@@ -82,14 +82,6 @@ export interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
-  existingTask?: Task;
-  initialStatus?: TaskStatus;
-  onSuccess?: () => void;
-  permissions?: {
-    canEditTask: boolean;
-    canDeleteTask: boolean;
-    canAssignTasks: boolean;
-  };
   projectMembers?: Array<{
     user: {
       id: string;
@@ -97,6 +89,14 @@ export interface TaskModalProps {
       avatar_url: string | null;
     };
   }>;
+  existingTask?: Task;
+  onSuccess?: () => void;
+  permissions?: {
+    canEditTask?: boolean;
+    canDeleteTask?: boolean;
+    canAssignTasks?: boolean;
+  };
+  initialStatus?: TaskStatus;
 }
 
 export const TASK_STATUS_LABELS = {
