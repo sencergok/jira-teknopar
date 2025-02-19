@@ -15,14 +15,12 @@ import {
   UniqueIdentifier,
   rectIntersection,
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 import { TaskCard } from './task-card';
-import { Button } from "@/components/ui/button";
-import { PlusIcon } from "@radix-ui/react-icons";
 import { TaskModal } from "@/components/modals/task-modal";
 import { Task, TaskStatus } from '@/types';
 import { KanbanColumn } from './kanban-column';
+import { useDebounce } from '@/lib/hooks/use-debounce';
 
 const COLUMNS = [
   { id: 'todo' as TaskStatus, title: 'Yapılacak' },
@@ -46,6 +44,13 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+
+  // Debounce search term and filters it is updated after 1 second
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+  const debouncedPriorityFilter = useDebounce(priorityFilter, 1000);
+  const debouncedAssigneeFilter = useDebounce(assigneeFilter, 1000);
+
 
   // Realtime subscription
   useEffect(() => {
@@ -88,21 +93,22 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTask
     return Array.from(uniqueAssignees).map(assignee => JSON.parse(assignee as string));
   }, [tasks]);
 
-  // Filtrelenmiş görevler
+  // Filtered tasks with search term and filters with the help of useMemo and debounced values which is coming from useDebounce customize hook
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      const matchesSearch = task.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (task.description?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase());
+  
+      const matchesPriority = debouncedPriorityFilter === 'all' || task.priority === debouncedPriorityFilter;
       
-      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-      
-      const matchesAssignee = assigneeFilter === 'all' ||
-        (assigneeFilter === 'unassigned' && !task.assignedTo) ||
-        (task.assignedTo?.id === assigneeFilter);
-
+      const matchesAssignee = debouncedAssigneeFilter === 'all' ||
+        (debouncedAssigneeFilter === 'unassigned' && !task.assignedTo) ||
+        (task.assignedTo?.id === debouncedAssigneeFilter);
+  
       return matchesSearch && matchesPriority && matchesAssignee;
     });
-  }, [tasks, searchTerm, priorityFilter, assigneeFilter]);
+  }, [tasks, debouncedSearchTerm, debouncedPriorityFilter, debouncedAssigneeFilter]);
+  
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id);
