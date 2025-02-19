@@ -9,9 +9,9 @@ import { Project, ProjectMember } from '@/types';
 import { ProjectService } from '@/lib/services/project-service';
 import { RealtimeService } from '@/lib/services/realtime-service';
 import { RealtimeTaskPayload, RealtimeMemberPayload } from '@/types/realtime';
-import { ProjectHeader } from '../../../../views/views/projects-header';
-import { ProjectContent } from '../../../../views/views/project-content';
-import { ProjectModals } from '../../../../views/views/modals';
+import { ProjectHeader } from '../../../../views/projects-header';
+import { ProjectContent } from '../../../../views/project-content';
+import { ProjectModals } from '../../../../views/modals';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function ProjectDetailPage() {

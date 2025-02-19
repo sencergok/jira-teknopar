@@ -103,10 +103,7 @@ export function ProjectContent({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <TaskMetricsCharts 
-              projectId={projectId} 
-              tasks={tasks} 
-            />
+            <TaskMetricsCharts projectId={projectId} tasks={tasks} />
           </CardContent>
         </Card>
       </TabsContent>
