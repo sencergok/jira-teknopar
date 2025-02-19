@@ -24,11 +24,11 @@ interface Metrics {
   done: number;
 }
 
-interface RealtimePayload {
+type PayloadType = {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-  new: { status: string; } & Record<string, unknown>;
-  old: { status: string; } & Record<string, unknown>;
-}
+  new: { status: string; };
+  old: { status: string; };
+};
 
 interface SubscriptionStatus {
   state: string;
@@ -169,7 +169,7 @@ export default function TaskMetricsCharts({ projectId }: TaskMetricsChartsProps)
           table: 'tasks',
           filter: `project_id=eq.${projectId}`
         },
-        (payload: RealtimePayload) => {
+        (payload: PayloadType) => {
           console.log('Task change detected:', payload);
           fetchMetrics();
         }
@@ -289,7 +289,7 @@ export default function TaskMetricsCharts({ projectId }: TaskMetricsChartsProps)
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={chartData}
+                    data={chartData.filter(item => item.value > 0)}
                     cx="50%"
                     cy="50%"
                     innerRadius={100}
@@ -297,9 +297,28 @@ export default function TaskMetricsCharts({ projectId }: TaskMetricsChartsProps)
                     paddingAngle={5}
                     dataKey="value"
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = 25 + innerRadius + (outerRadius - innerRadius);
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      const percent = ((value / metrics.total) * 100).toFixed(1);
+
+                      return value > 0 ? (
+                        <text
+                          x={x}
+                          y={y}
+                          className="text-xs font-medium"
+                          fill="currentColor"
+                          textAnchor={x > cx ? 'start' : 'end'}
+                          dominantBaseline="middle"
+                        >
+                          {name} ({percent}%)
+                        </text>
+                      ) : null;
+                    }}
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.filter(item => item.value > 0).map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={entry.color} 

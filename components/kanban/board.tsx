@@ -1,60 +1,58 @@
 'use client';
 
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import Image from 'next/image';
+import {
+  DndContext, 
+  DragOverlay,
+  useSensor,
+  useSensors,
+  MouseSensor,
+  TouchSensor,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+  UniqueIdentifier,
+  rectIntersection,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { createPortal } from 'react-dom';
+import { TaskCard } from './task-card';
+import { Button } from "@/components/ui/button";
+import { PlusIcon } from "@radix-ui/react-icons";
+import { TaskModal } from "@/components/modals/task-modal";
+import { Task, TaskStatus } from '@/types';
+import { KanbanColumn } from './kanban-column';
 
-interface Assignee {
-  id: string;
-  name: string;
-  avatar_url: string | null;
-}
+const COLUMNS = [
+  { id: 'todo' as TaskStatus, title: 'Yapılacak' },
+  { id: 'in_progress' as TaskStatus, title: 'Devam Ediyor' },
+  { id: 'in_review' as TaskStatus, title: 'İncelemede' },
+  { id: 'done' as TaskStatus, title: 'Tamamlandı' },
+] as const;
 
-type Task = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  assignedTo: {
-    id: string;
-    name: string;
-    avatar_url: string | null;
-  } | null;
-};
-
-type KanbanBoardProps = {
+interface KanbanBoardProps {
   projectId: string;
   tasks: Task[];
-  onTaskMove: (taskId: string, newStatus: string) => void;
+  onTaskMove: (taskId: string, newStatus: Task['status']) => void;
   onTaskClick: (taskId: string) => void;
-};
+}
 
-type Column = {
-  id: string;
-  title: string;
-};
-
-const columns: Column[] = [
-  { id: 'todo', title: 'Yapılacak' },
-  { id: 'in_progress', title: 'Devam Ediyor' },
-  { id: 'in_review', title: 'İncelemede' },
-  { id: 'done', title: 'Tamamlandı' },
-];
-
-export function KanbanBoard({ projectId, tasks, onTaskMove, onTaskClick }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove, onTaskClick }: KanbanBoardProps) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [searchTerm, setSearchTerm] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | Task['priority']>('all');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+  // Realtime subscription
   useEffect(() => {
     const supabase = createClient();
-
-    // Realtime abonelik
     const taskSubscription = supabase
       .channel('public:tasks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload: { new: { id: string; status: string } }) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload: { new: { id: string; status: TaskStatus } }) => {
         console.log('Task değişikliği:', payload);
         onTaskMove(payload.new.id, payload.new.status);
       })
@@ -65,6 +63,20 @@ export function KanbanBoard({ projectId, tasks, onTaskMove, onTaskClick }: Kanba
     };
   }, [onTaskMove]);
 
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    })
+  );
+
   // Benzersiz atanan kişileri al
   const assignees = useMemo(() => {
     const uniqueAssignees = new Set();
@@ -73,7 +85,7 @@ export function KanbanBoard({ projectId, tasks, onTaskMove, onTaskClick }: Kanba
         uniqueAssignees.add(JSON.stringify(task.assignedTo));
       }
     });
-    return Array.from(uniqueAssignees).map(assignee => JSON.parse(assignee as string) as Assignee);
+    return Array.from(uniqueAssignees).map(assignee => JSON.parse(assignee as string));
   }, [tasks]);
 
   // Filtrelenmiş görevler
@@ -92,71 +104,90 @@ export function KanbanBoard({ projectId, tasks, onTaskMove, onTaskClick }: Kanba
     });
   }, [tasks, searchTerm, priorityFilter, assigneeFilter]);
 
-  // Sürükle-bırak işleyicisi
-  const handleDragEnd = async (result: DropResult) => {
-    if (!result.destination) return;
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id);
+  };
 
-    const { draggableId, source, destination } = result;
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeTask = tasks.find(t => t.id === active.id);
+    const overColumn = COLUMNS.find(col => col.id === over.id);
+
+    if (!activeTask || !overColumn) return;
+
+    // If the task is already in this column, do nothing
+    if (activeTask.status === overColumn.id) return;
+
+    onTaskMove(activeTask.id, overColumn.id);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
     
-    if (source.droppableId === destination.droppableId && 
-        source.index === destination.index) {
-      return;
-    }
+    if (!over) return;
 
-    // Görev durumunu güncelle
-    const newStatus = destination.droppableId;
-    onTaskMove(draggableId, newStatus);
+    const activeTask = tasks.find(t => t.id === active.id);
+    const overColumn = COLUMNS.find(col => col.id === over.id);
+
+    if (!activeTask || !overColumn) return;
 
     try {
       const supabase = createClient();
       
-      // Hedef kolondaki görevleri al
       const { data: columnTasks, error: fetchError } = await supabase
         .from('tasks')
         .select('id, task_order')
-        .eq('status', newStatus)
+        .eq('status', overColumn.id)
         .eq('project_id', projectId)
         .order('task_order', { ascending: true });
 
-      if (fetchError) {
-        console.error('Görevler alınırken hata:', fetchError);
-        return;
-      }
+      if (fetchError) throw fetchError;
 
-      // Yeni sıra değerini hesapla
       let newOrder: number;
       
       if (columnTasks.length === 0) {
+        // Kolon boşsa, başlangıç değeri
         newOrder = 1000;
-      } else if (destination.index === 0) {
-        newOrder = columnTasks[0].task_order / 2;
-      } else if (destination.index >= columnTasks.length) {
-        newOrder = columnTasks[columnTasks.length - 1].task_order + 1000;
+      } else if (columnTasks.length === 1) {
+        // Kolonda tek görev varsa, onun altına ekle
+        newOrder = parseInt(columnTasks[0].task_order) + 1000;
       } else {
-        const prevOrder = columnTasks[destination.index - 1].task_order;
-        const nextOrder = columnTasks[destination.index].task_order;
-        newOrder = (prevOrder + nextOrder) / 2;
+        // Görevler arasına eklemek için ortalama al
+        const lastTask = columnTasks[columnTasks.length - 1];
+        const secondLastTask = columnTasks[columnTasks.length - 2];
+        newOrder = (parseInt(lastTask.task_order) + parseInt(secondLastTask.task_order)) / 2;
       }
 
-      // Görevin durumunu ve sırasını güncelle
       const { error: updateError } = await supabase
         .from('tasks')
         .update({
-          status: newStatus,
-          task_order: newOrder,
+          status: overColumn.id,
+          task_order: String(newOrder),
         })
-        .eq('id', draggableId);
+        .eq('id', activeTask.id);
 
-      if (updateError) {
-        console.error('Görev sıralaması güncellenirken hata:', updateError);
-      }
+      if (updateError) throw updateError;
+
     } catch (error) {
-      console.error('Sıralama güncellenirken hata:', error);
+      console.error('Task update error:', error);
+    }
+
+    setActiveId(null);
+  };
+
+  // Görev tıklama işleyicisi
+  const handleTaskClick = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setIsTaskModalOpen(true);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Filtreler */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
@@ -180,7 +211,7 @@ export function KanbanBoard({ projectId, tasks, onTaskMove, onTaskClick }: Kanba
           <select
             id="priority"
             value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
+            onChange={(e) => setPriorityFilter(e.target.value as 'all' | Task['priority'])}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="all">Tümü</option>
@@ -202,7 +233,7 @@ export function KanbanBoard({ projectId, tasks, onTaskMove, onTaskClick }: Kanba
           >
             <option value="all">Tümü</option>
             <option value="unassigned">Atanmamış</option>
-            {assignees.map((assignee: Assignee) => (
+            {assignees.map((assignee: any) => (
               <option key={assignee.id} value={assignee.id}>
                 {assignee.name}
               </option>
@@ -212,94 +243,59 @@ export function KanbanBoard({ projectId, tasks, onTaskMove, onTaskClick }: Kanba
       </div>
 
       {/* Kanban Board */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {columns.map((column) => (
-            <div key={column.id} className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-900 mb-4">{column.title}</h3>
-              <Droppable droppableId={column.id}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`space-y-2 min-h-[100px] ${
-                      snapshot.isDraggingOver ? 'bg-gray-100' : ''
-                    }`}
-                  >
-                    {filteredTasks
-                      .filter((task) => task.status === column.id)
-                      .map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              onClick={() => onTaskClick(task.id)}
-                              className={`bg-white p-3 rounded-md shadow-sm hover:shadow cursor-pointer ${
-                                snapshot.isDragging ? 'shadow-lg' : ''
-                              }`}
-                            >
-                              {/* Görev Başlığı */}
-                              <div className="text-sm font-medium text-gray-900">
-                                {task.title}
-                              </div>
-
-                              {/* Görev Açıklaması */}
-                              {task.description && (
-                                <div className="mt-1">
-                                  <p className="text-sm text-gray-600 line-clamp-3">
-                                    {task.description}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Atanan Kişi */}
-                              {task.assignedTo && (
-                                <div className="mt-2 flex items-center">
-                                  {task.assignedTo?.avatar_url ? (
-                                    <Image
-                                      src={task.assignedTo.avatar_url}
-                                      alt={task.assignedTo.name}
-                                      width={32}
-                                      height={32}
-                                      className="h-8 w-8 rounded-full"
-                                    />
-                                  ) : (
-                                    <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                                      <span className="text-sm font-medium text-gray-600">
-                                        {task.assignedTo?.name?.charAt(0).toUpperCase()}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <span className="ml-2 text-xs text-gray-500">
-                                    {task.assignedTo.name}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Öncelik */}
-                              <div className="mt-2">
-                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium
-                                  ${task.priority === 'high' ? 'bg-red-50 text-red-700 ring-red-600/20' :
-                                    task.priority === 'medium' ? 'bg-yellow-50 text-yellow-700 ring-yellow-600/20' :
-                                    'bg-green-50 text-green-700 ring-green-600/20'} ring-1 ring-inset`}>
-                                  {task.priority === 'high' ? 'Yüksek' :
-                                    task.priority === 'medium' ? 'Orta' : 'Düşük'}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        collisionDetection={rectIntersection}
+      >
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {COLUMNS.map(column => (
+            <KanbanColumn
+              key={column.id}
+              id={column.id}
+              title={column.title}
+              tasks={filteredTasks.filter(task => task.status === column.id)}
+              onTaskClick={handleTaskClick}
+              projectId={projectId}
+            />
           ))}
         </div>
-      </DragDropContext>
+
+        {typeof document !== 'undefined' && createPortal(
+          <DragOverlay>
+            {activeId && tasks.find(task => task.id === activeId) ? (
+              <TaskCard
+                task={tasks.find(task => task.id === activeId)!}
+                onTaskClick={handleTaskClick}
+                isDragging
+              />
+            ) : null}
+          </DragOverlay>,
+          document.body
+        )}
+      </DndContext>
+
+      {/* Task Modal for editing */}
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setSelectedTask(null);
+        }}
+        projectId={projectId}
+        existingTask={selectedTask || undefined}
+        onSuccess={() => {
+          setIsTaskModalOpen(false);
+          setSelectedTask(null);
+        }}
+        permissions={{
+          canEditTask: true,
+          canDeleteTask: true,
+          canAssignTasks: true
+        }}
+      />
     </div>
   );
 }

@@ -1,39 +1,45 @@
 'use client';
 
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { ProjectPermissions } from '@/lib/hooks/use-project-permissions';
 import { ConfirmModal } from './confirm-modal';
 
-type TaskModalProps = {
+interface Task {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  task_order: string;
+  created_by_id: string;
+  assigned_to_id: string | null;
+  assignedTo: {
+    id: string;
+  } | null;
+}
+
+interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
-  projectMembers: {
+  projectMembers?: Array<{
     user: {
       id: string;
       name: string;
       avatar_url: string | null;
-    };
-  }[];
-  existingTask?: {
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    priority: string;
-    task_order: string;
-    created_by_id: string;
-    assigned_to_id: string | null;
-    assignedTo: {
-      id: string;
-    } | null;
-  };
+    }
+  }>;
+  existingTask?: Task;
   onSuccess: () => void;
-  permissions?: ProjectPermissions;
-};
+  permissions?: {
+    canEditTask?: boolean;
+    canDeleteTask?: boolean;
+    canAssignTasks?: boolean;
+  };
+  initialStatus?: string;
+}
 
 export function TaskModal({
   isOpen,
@@ -43,27 +49,28 @@ export function TaskModal({
   existingTask,
   onSuccess,
   permissions,
+  initialStatus,
 }: TaskModalProps) {
   const { user } = useAuth();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('todo');
-  const [priority, setPriority] = useState('medium');
-  const [assignedToId, setAssignedToId] = useState('');
+  const [title, setTitle] = useState(existingTask?.title || '');
+  const [description, setDescription] = useState(existingTask?.description || '');
+  const [priority, setPriority] = useState<string>(existingTask?.priority || 'medium');
+  const [status, setStatus] = useState<string>(existingTask?.status || initialStatus || 'todo');
+  const [assignedToId, setAssignedToId] = useState<string | undefined>(existingTask?.assigned_to_id || undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Form verilerini sıfırla
-  const resetForm = () => {
+  // Form verilerini sıfırla - useCallback ile memoize ediyoruz
+  const resetForm = useCallback(() => {
     setTitle('');
     setDescription('');
-    setStatus('todo');
+    setStatus(initialStatus || 'todo');
     setPriority('medium');
     setAssignedToId('');
     setError(null);
-  };
+  }, [initialStatus]);
 
   // Modal açıldığında veya existingTask değiştiğinde form verilerini güncelle
   useEffect(() => {
@@ -72,21 +79,28 @@ export function TaskModal({
       setDescription(existingTask.description || '');
       setStatus(existingTask.status);
       setPriority(existingTask.priority);
-      setAssignedToId(existingTask.assignedTo?.id || '');
+      setAssignedToId(existingTask.assigned_to_id || '');
     } else {
       resetForm();
     }
-  }, [existingTask]);
+  }, [existingTask, initialStatus, resetForm]);
 
   // Modal kapandığında formu sıfırla
   useEffect(() => {
     if (!isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
+
+  // initialStatus değiştiğinde status'u güncelle
+  useEffect(() => {
+    if (!existingTask && initialStatus) {
+      setStatus(initialStatus);
+    }
+  }, [initialStatus, existingTask]);
 
   // Yetki kontrolü
-  const canEdit = !existingTask || (existingTask && permissions?.canEditTasks);
+  const canEdit = !existingTask || (existingTask && permissions?.canEditTask);
   const canAssign = permissions?.canAssignTasks;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -290,7 +304,7 @@ export function TaskModal({
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
                           <option value="">Atanmadı</option>
-                          {projectMembers.map((member) => (
+                          {projectMembers?.map((member) => (
                             <option key={member.user.id} value={member.user.id}>
                               {member.user.name}
                             </option>
@@ -328,7 +342,7 @@ export function TaskModal({
                       </button>
                     </div>
 
-                    {existingTask && permissions?.canDeleteTasks && (
+                    {existingTask && permissions?.canDeleteTask && (
                       <div className="mt-4 border-t pt-4">
                         <button
                           type="button"

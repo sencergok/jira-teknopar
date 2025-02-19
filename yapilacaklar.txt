@@ -1,0 +1,11 @@
+kanban'da açılan görev detay sayfası rollere göre izinleri ayarla, burada atama işleminde sorun var
+bu sorunu fixle, proje silme işlemi yapıldığında db'den silmiyor bunu fixle, 
+kanban panosunda yetkiye göre görev ekle butonu göster yetki yetersizse gösterilmeyecek,
+debouncing ile 1000ms filtering ayarla, interface ve typle'ları düzenle, mümkünse tek dosya üzerinden dağıtımını yap,
+genel proje ve kod düzenini ayarla, aşırı karmaşık gördüğün, bozmadan ve hatasızca daha doğru yapabileceğimiz
+işlemler varsa yap. gereksizi kullanılmayan veya yanlış yerde olduğunu düşündüğün dosyaları da bana bildir.
+daha sonra bu projeyi hiçbir şeyi bozmadan sanki feature bazlı geliştirilmiş gibi bir repo açıp oraya fature branch bazlı
+olarak parça parça pushlayacağız. pushladığımız parçalar çalışır halde olacak fakat her özellik yeni bir branchte eklenmiş
+gibi gözükecek. çünkü biz CI/CD sürecini doğru yönetemedik.
+
+bu proje localde geliştirilecek fakat vercel'de yayınlanacak. .env veya .env.local (hangisinde gerekiyorsa) buna göre düzenlemeleri yap.

@@ -21,7 +21,7 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    redirect('/auth/login');
+    redirect('/');
   }
 
   return (
@@ -32,7 +32,7 @@ export default function DashboardLayout({
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <Link href="/dashboard" className="text-xl font-bold text-indigo-600">
-                  Jira Clone
+                  Jira Teknopar
                 </Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -73,7 +73,6 @@ export default function DashboardLayout({
           </div>
         </div>
       </nav>
-
       <main>
         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
           {children}
