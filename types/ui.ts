@@ -45,7 +45,7 @@ export interface ChartContextProps {
 
 export interface TooltipProps {
   active?: boolean;
-  payload?: any[];
+  payload?: unknown[];
   label?: string;
 }
 
