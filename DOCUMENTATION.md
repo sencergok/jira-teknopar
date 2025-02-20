@@ -1,510 +1,361 @@
-# Jira Teknopar - Detaylı Teknik Dokümantasyon
+# Jira Teknopar - Teknik Dokümantasyon
 
-## İçindekiler
+## 1. Proje Yapısı
 
-1. [Proje Yapısı ve Klasörler](#proje-yapısı-ve-klasörler)
-2. [Mimari Yapı](#mimari-yapı)
-3. [Veritabanı Şeması ve İlişkiler](#veritabanı-şeması-ve-ilişkiler)
-4. [Bileşen Yapısı ve Detayları](#bileşen-yapısı-ve-detayları)
-5. [State Yönetimi ve Hooks](#state-yönetimi-ve-hooks)
-6. [Realtime İşlemler ve Senkronizasyon](#realtime-işlemler-ve-senkronizasyon)
-7. [Yetkilendirme Sistemi ve Güvenlik](#yetkilendirme-sistemi-ve-güvenlik)
-8. [Kanban Board İmplementasyonu](#kanban-board-implementasyonu)
-9. [Servis Katmanı ve API İşlemleri](#servis-katmanı-ve-api-işlemleri)
-10. [Hata Yönetimi ve Loglama](#hata-yönetimi-ve-loglama)
+### 1.1 Klasör Yapısı
 
-## Proje Yapısı ve Klasörler
-
-### `/app` Klasörü
-Next.js 14 App Router yapısını içerir.
-
-#### `/app/page.tsx`
-- Ana landing sayfası
-- Hero, Features ve Navbar bileşenlerini içerir
-- Giriş yapmamış kullanıcılar için bilgilendirme sayfası
-
-#### `/app/dashboard/page.tsx`
-- Kullanıcının projelerini listeler
-- Proje oluşturma ve yönetim fonksiyonlarını içerir
-- Realtime proje güncellemelerini dinler
-
-#### `/app/dashboard/projects/[id]/page.tsx`
-- Spesifik proje detay sayfası
-- Kanban board ve proje yönetimi
-- Proje metrikleri ve üye yönetimi
-
-#### `/app/dashboard/projects/new/page.tsx`
-- Yeni proje oluşturma formu
-- Proje ve ilk görev oluşturma mantığı
-- Kullanıcı doğrulama ve yetki kontrolleri
-
-### `/components` Klasörü
-Yeniden kullanılabilir React bileşenlerini içerir.
-
-#### `/components/kanban`
-- `board.tsx`: Ana Kanban board konteyner bileşeni
-  - DND Kit entegrasyonu
-  - Task filtreleme ve sıralama
-  - Realtime güncelleme yönetimi
-
-- `column.tsx`: Kanban sütun bileşeni
-  - Task listesi görüntüleme
-  - Drop zone yönetimi
-  - Task ekleme butonu
-
-#### `/components/task`
-- `task-card.tsx`: Görev kartı bileşeni
-  - Sürüklenebilir task kartı
-  - Task detayları görüntüleme
-  - Atanan kişi ve öncelik göstergeleri
-
-- `task-modal.tsx`: Görev detay/düzenleme modalı
-  - Form validasyonu
-  - Task CRUD işlemleri
-  - Yetki bazlı UI kontrolü
-
-#### `/components/project`
-- `project-card.tsx`: Proje kartı bileşeni
-- `project-header.tsx`: Proje başlık ve aksiyonları
-- `project-list.tsx`: Proje listesi görüntüleme
-- `project-summary.tsx`: Proje özet metrikleri
-
-#### `/components/ui`
-Temel UI bileşenleri (shadcn/ui tabanlı)
-- `button.tsx`: Özelleştirilmiş buton bileşeni
-- `input.tsx`: Form input bileşeni
-- `select.tsx`: Seçim kutusu bileşeni
-- `modal.tsx`: Modal dialog bileşeni
-- `dropdown-menu.tsx`: Açılır menü bileşeni
-
-### `/lib` Klasörü
-Yardımcı fonksiyonlar ve servisler.
-
-#### `/lib/hooks`
-Custom React hooks:
-
-- `use-task-management.ts`:
-  ```typescript
-  // Task state ve işlem yönetimi
-  const {
-    tasks,
-    selectedTask,
-    filteredTasks,
-    handleDragStart,
-    handleDragEnd,
-    handleTaskClick,
-    // ...
-  } = useTaskManagement({ projectId, initialTasks });
-  ```
-
-- `use-project-permissions.ts`:
-  ```typescript
-  // Rol ve yetki yönetimi
-  const {
-    permissions,
-    role,
-    isOwner,
-    checkRole
-  } = useProjectPermissions(projectId, userId);
-  ```
-
-- `use-realtime-subscription.ts`:
-  ```typescript
-  // Realtime güncelleme yönetimi
-  useRealtimeSubscription(projectId, onTaskMove, onMemberUpdate);
-  ```
-
-#### `/lib/services`
-API ve servis katmanı:
-
-- `project-service.ts`:
-  ```typescript
-  // Proje işlemleri
-  class ProjectService {
-    static async getProjectDetails(projectId: string);
-    static async updateTaskStatus(taskId: string, newStatus: string);
-    static async deleteProject(projectId: string);
-  }
-  ```
-
-- `realtime-service.ts`:
-  ```typescript
-  // Realtime işlemleri
-  class RealtimeService {
-    static subscribeToProjectUpdates(
-      projectId: string,
-      onTaskUpdate: (payload: any) => void,
-      onMemberUpdate: () => void
-    );
-  }
-  ```
-
-#### `/lib/db`
-Veritabanı şemaları ve tip tanımlamaları:
-
-- `schema.ts`:
-  ```typescript
-  // Veritabanı tablo tanımlamaları
-  export const users = pgTable('users', {
-    id: uuid('id').primaryKey(),
-    // ...
-  });
-
-  export const projects = pgTable('projects', {
-    // ...
-  });
-  ```
-
-### `/types` Klasörü
-TypeScript tip tanımlamaları:
-
-- `task.ts`: Task ile ilgili tipler ve enum'lar
-  ```typescript
-  export enum TaskStatus {
-    TODO = 'todo',
-    IN_PROGRESS = 'in_progress',
-    // ...
-  }
-
-  export interface Task {
-    id: string;
-    title: string;
-    // ...
-  }
-  ```
-
-- `project.ts`: Proje ile ilgili tipler
-  ```typescript
-  export interface Project {
-    id: string;
-    name: string;
-    // ...
-  }
-
-  export type ProjectRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
-  ```
-
-### `/views` Klasörü
-Sayfa düzeni bileşenleri:
-
-- `project-content.tsx`: Proje içerik düzeni
-- `modals.tsx`: Modal yönetimi
-- `projects-header.tsx`: Proje başlık düzeni
-
-## Veritabanı Şeması ve İlişkiler
-
-### Tablolar ve İlişkiler
-
-#### Users Tablosu
-```sql
-users (
-  id: uuid PRIMARY KEY,
-  email: varchar(255) UNIQUE NOT NULL,
-  name: varchar(255),
-  avatar_url: text,
-  role: varchar(50) DEFAULT 'member',
-  created_at: timestamp DEFAULT now(),
-  updated_at: timestamp DEFAULT now()
-)
-
--- İlişkiler:
--- 1. projects (created_by_id) -> ONE-TO-MANY
--- 2. project_members (user_id) -> ONE-TO-MANY
--- 3. tasks (assigned_to_id) -> ONE-TO-MANY
--- 4. tasks (created_by_id) -> ONE-TO-MANY
+```
+jira-teknopar/
+├── app/                    # Next.js 14 App Router yapısı
+│   ├── auth/              # Kimlik doğrulama sayfaları
+│   ├── dashboard/         # Dashboard ve proje yönetimi sayfaları
+│   └── page.tsx           # Ana sayfa (Landing)
+│
+├── components/            # React bileşenleri
+│   ├── kanban/           # Kanban board bileşenleri
+│   ├── landing/          # Landing page bileşenleri
+│   ├── metrics/          # Metrik ve grafik bileşenleri
+│   ├── modals/           # Modal dialog bileşenleri
+│   ├── project/          # Proje yönetimi bileşenleri
+│   ├── task/             # Görev yönetimi bileşenleri
+│   └── ui/               # Genel UI bileşenleri (shadcn/ui)
+│
+├── lib/                   # Yardımcı fonksiyonlar ve servisler
+│   ├── db/               # Veritabanı şemaları ve yapılandırması
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # Servis katmanı implementasyonları
+│   └── supabase/         # Supabase client yapılandırması
+│
+├── types/                # TypeScript tip tanımlamaları
+│   ├── project.ts        # Proje ile ilgili tipler
+│   ├── task.ts          # Görev ile ilgili tipler
+│   ├── user.ts          # Kullanıcı ile ilgili tipler
+│   └── ui/              # UI bileşenleri için tipler
+│
+├── views/                # Sayfa görünümleri ve kompozisyonları
+│
+└── public/              # Statik dosyalar
 ```
 
-#### Projects Tablosu
-```sql
-projects (
-  id: uuid PRIMARY KEY,
-  name: varchar(255) NOT NULL,
-  description: text,
-  created_by_id: uuid REFERENCES users(id),
-  created_at: timestamp DEFAULT now(),
-  updated_at: timestamp DEFAULT now()
-)
+### 1.2 Teknoloji Yığını
 
--- İlişkiler:
--- 1. users (created_by_id) -> MANY-TO-ONE
--- 2. project_members (project_id) -> ONE-TO-MANY
--- 3. tasks (project_id) -> ONE-TO-MANY
+- **Frontend Framework**: Next.js 14 (App Router)
+- **Programlama Dili**: TypeScript
+- **Stil**: Tailwind CSS
+- **UI Kütüphanesi**: shadcn/ui
+- **State Yönetimi**: Zustand
+- **Backend/BaaS**: Supabase
+- **Veritabanı**: PostgreSQL
+- **Realtime**: Supabase Realtime
+- **Drag & Drop**: @dnd-kit/core
+- **Grafik**: Recharts
+- **Form Yönetimi**: React Hook Form
+- **Validasyon**: Zod
+
+## 2. Temel Bileşenler ve Dosyalar
+
+### 2.1 Middleware (middleware.ts)
+- Oturum kontrolü
+- Yetkilendirme kontrolleri
+- Kullanıcı otomatik kayıt işlemleri
+- Rota koruması
+
+### 2.2 Servisler (lib/services/)
+- **ProjectService**: Proje CRUD işlemleri
+- **DashboardService**: Dashboard metrikleri ve istatistikler
+- **RealtimeService**: Gerçek zamanlı güncelleme yönetimi
+
+### 2.3 Custom Hooks (lib/hooks/)
+- **useAuth**: Kimlik doğrulama yönetimi
+- **useProjectPermissions**: Proje bazlı yetkilendirme
+- **useTaskManagement**: Görev yönetimi ve sürükle-bırak
+- **useProjectPage**: Proje sayfası state yönetimi
+- **useDebounce**: Performans optimizasyonu
+
+### 2.4 Tip Tanımlamaları (types/)
+- Proje, görev ve kullanıcı tipleri
+- UI bileşen prop tipleri
+- Realtime payload tipleri
+- Veritabanı şema tipleri
+
+## 3. Temel Özellikler ve İmplementasyonları
+
+### 3.1 Kanban Board
+- Sürükle-bırak görev yönetimi
+- Gerçek zamanlı güncelleme
+- Görev sıralama ve filtreleme
+- Görev detay modalı
+
+### 3.2 Proje Yönetimi
+- CRUD operasyonları
+- Üye yönetimi
+- Rol tabanlı yetkilendirme
+- Proje metrikleri
+
+### 3.3 Görev Yönetimi
+- Görev oluşturma ve düzenleme
+- Atama ve önceliklendirme
+- Durum takibi
+- Gerçek zamanlı güncellemeler
+
+### 3.4 Metrikler ve Raporlama
+- Görev dağılımı grafikleri
+- Proje ilerleme durumu
+- Haftalık aktivite grafikleri
+- Performans metrikleri
+
+## 4. State Yönetimi
+
+### 4.1 Mevcut State Yönetimi
+- React hooks (useState, useEffect)
+- Custom hooks ile state enkapsülasyonu
+- Props drilling minimizasyonu
+- Context API kullanımı
+
+### 4.2 Planlanan State Yönetimi
+Zustand implementasyonu planlanmış ancak henüz uygulanmamıştır. Aşağıdaki state'ler için Zustand store'ları oluşturulacaktır:
+- Filtre durumu (KanbanBoard filtreleri)
+- UI durumu (tema, modal yönetimi)
+- Form durumu (form state persistence)
+- Kullanıcı tercihleri
+
+### 4.3 Mevcut Context Kullanımı
+- Auth context (kullanıcı oturumu)
+- Toast notifications (bildirimler)
+
+## 5. Veritabanı Şeması
+
+### 5.1 Tablolar
+- users
+- projects
+- project_members
+- tasks
+
+### 5.2 İlişkiler
+- Project -> User (created_by)
+- Project -> ProjectMember (members)
+- Task -> Project (project_id)
+- Task -> User (assigned_to, created_by)
+
+## 6. Güvenlik ve Yetkilendirme
+
+### 6.1 Rol Tipleri
+- OWNER: Tam yetki
+- ADMIN: Proje yönetimi ve üye yönetimi
+- MEMBER: Görev yönetimi
+- VIEWER: Sadece görüntüleme
+
+### 6.2 Yetki Kontrolleri
+- Middleware seviyesinde rota koruması
+- Servis seviyesinde CRUD kontrolü
+- UI seviyesinde conditional rendering
+
+## 7. Performans Optimizasyonları
+
+### 7.1 Frontend
+- Debounced arama ve filtreler
+- Lazy loading bileşenler
+- Memoized değerler
+- Image optimizasyonu
+
+### 7.2 Backend
+- Veritabanı indeksleri
+- Batch işlemler
+- Önbellekleme stratejileri
+
+## 8. Dosya İlişkileri ve Bağımlılıklar
+
+### 8.1 Bileşen Hiyerarşisi
+```
+ProjectPage
+├── ProjectHeader
+├── ProjectContent
+│   ├── KanbanBoard
+│   │   └── KanbanColumn
+│   │       └── TaskCard
+│   ├── ProjectSummary
+│   └── TaskMetricsCharts
+└── ProjectModals
+    ├── TaskModal
+    ├── ProjectModal
+    └── MemberModal
 ```
 
-#### Project_Members Tablosu
-```sql
-project_members (
-  id: uuid PRIMARY KEY,
-  project_id: uuid REFERENCES projects(id),
-  user_id: uuid REFERENCES users(id),
-  role: varchar(50) DEFAULT 'MEMBER',
-  created_at: timestamp DEFAULT now()
-)
+### 8.2 Servis Bağımlılıkları
+```
+ProjectService
+├── RealtimeService
+└── DashboardService
 
--- İlişkiler:
--- 1. projects (project_id) -> MANY-TO-ONE
--- 2. users (user_id) -> MANY-TO-ONE
+TaskManagementHook
+├── ProjectService
+└── RealtimeService
 ```
 
-#### Tasks Tablosu
-```sql
-tasks (
-  id: uuid PRIMARY KEY,
-  title: varchar(255) NOT NULL,
-  description: text,
-  status: varchar(50) DEFAULT 'todo',
-  priority: varchar(50) DEFAULT 'medium',
-  project_id: uuid REFERENCES projects(id),
-  assigned_to_id: uuid REFERENCES users(id),
-  created_by_id: uuid REFERENCES users(id),
-  task_order: text NOT NULL,
-  metadata: jsonb,
-  created_at: timestamp DEFAULT now(),
-  updated_at: timestamp DEFAULT now()
-)
+## 9. Test Stratejisi
 
--- İlişkiler:
--- 1. projects (project_id) -> MANY-TO-ONE
--- 2. users (assigned_to_id) -> MANY-TO-ONE
--- 3. users (created_by_id) -> MANY-TO-ONE
+### 9.1 Birim Testler
+- Hooks
+- Utilities
+- Services
+
+### 9.2 Entegrasyon Testler
+- API endpoints
+- Database operations
+- Authentication flows
+
+### 9.3 E2E Testler
+- User flows
+- Critical paths
+- Edge cases
+
+## 10. Deployment ve CI/CD
+
+### 10.1 Development Workflow
+- Feature branch workflow
+- Code review süreci
+- Merge stratejisi
+
+### 10.2 Environment Variables
+- Development
+- Staging
+- Production
+
+## 11. Bilinen Sınırlamalar ve Gelecek Geliştirmeler
+
+### 11.1 Sınırlamalar
+- Concurrent updates handling
+- Real-time performance at scale
+- Browser storage limitations
+
+### 11.2 Planlanan Geliştirmeler
+- Advanced analytics
+- Integration capabilities
+- Mobile application
+- Offline support 
+
+## 12. Dosya Bazlı Açıklamalar
+
+### 12.1 Hooks
+- **use-auth.ts**: Supabase auth yönetimi, oturum durumu ve kullanıcı bilgileri
+- **use-project-permissions.ts**: Rol tabanlı yetkilendirme mantığı, proje bazlı izinler
+- **use-task-management.ts**: Kanban board drag-drop mantığı, görev sıralama
+- **use-project-page.ts**: Proje sayfası state ve modal yönetimi
+- **use-debounce.ts**: Input ve filtreleme optimizasyonu
+- **use-toast.ts**: Bildirim sistemi yönetimi
+
+### 12.2 Servisler
+- **project-service.ts**: 
+  - Proje CRUD operasyonları
+  - Üye yönetimi
+  - Task sıralama ve güncelleme
+  - Detaylı proje bilgisi çekme
+
+- **dashboard-service.ts**:
+  - Dashboard istatistikleri
+  - Proje ve görev metrikleri
+  - Kullanıcı bazlı istatistikler
+
+- **realtime-service.ts**:
+  - Supabase realtime subscription yönetimi
+  - Task ve üye güncellemeleri
+  - Realtime event handling
+
+### 12.3 Bileşenler
+- **Kanban/**
+  - **board.tsx**: Ana kanban board yapısı ve state yönetimi
+  - **column.tsx**: Kanban kolonları ve görev listeleme
+
+- **Task/**
+  - **task-card.tsx**: Görev kartı UI ve interaksiyon
+  - **task-modal.tsx**: Görev detay ve düzenleme modalı
+
+- **Project/**
+  - **project-card.tsx**: Proje kartı UI
+  - **project-list.tsx**: Proje listesi ve grid yapısı
+  - **project-header.tsx**: Proje başlık ve aksiyonları
+
+- **Metrics/**
+  - **project-summary.tsx**: Proje özet metrikleri
+  - **task-metrics-charts.tsx**: Görev dağılım grafikleri
+
+- **Modals/**
+  - **project-modal.tsx**: Proje oluşturma/düzenleme
+  - **member-modal.tsx**: Üye yönetimi
+  - **task-modal.tsx**: Görev yönetimi
+  - **confirm-modal.tsx**: Onay dialogları
+
+### 12.4 Tipler
+- **project.ts**:
+  - Project interface
+  - ProjectMember interface
+  - ProjectRole type
+  - ProjectPermissions interface
+
+- **task.ts**:
+  - Task interface
+  - TaskStatus enum
+  - TaskPriority enum
+  - TaskMetrics interface
+
+- **dashboard.ts**:
+  - DashboardStats interface
+  - ProjectRecord interface
+  - TaskStatusRecord interface
+
+### 12.5 Views
+- **project-content.tsx**: 
+  - Proje detay sayfası kompozisyonu
+  - Tab yönetimi
+  - Bileşen organizasyonu
+
+- **modals.tsx**:
+  - Modal kompozisyonları
+  - Props yönetimi
+  - Event handling
+
+### 12.6 Middleware
+- **middleware.ts**:
+  - Rota koruması
+  - Oturum kontrolü
+  - Kullanıcı oluşturma
+  - Yetki kontrolü
+
+## 13. Dosya İlişkileri
+
+### 13.1 Veri Akışı
+```
+DashboardService -> ProjectService -> RealtimeService
+       ↓                   ↓               ↓
+   Dashboard         ProjectPage      TaskManagement
+       ↓                   ↓               ↓
+   Metrics          ProjectContent    KanbanBoard
 ```
 
-## Realtime İşlemler ve Senkronizasyon
+### 13.2 Bileşen İlişkileri
+```
+ProjectPage
+    ↓
+ProjectContent
+    ├── KanbanBoard
+    │      ├── KanbanColumn
+    │      └── TaskCard
+    │           └── TaskModal
+    ├── ProjectSummary
+    └── TaskMetricsCharts
 
-### Task Güncellemeleri
-```typescript
-// /lib/hooks/use-realtime-subscription.ts
-useEffect(() => {
-  const channel = supabase
-    .channel(`project_tasks:${projectId}`)
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'tasks',
-      filter: `project_id=eq.${projectId}`
-    }, (payload) => {
-      if (payload.eventType === 'UPDATE') {
-        // Task güncelleme
-        setTasks(prevTasks => {
-          const updatedTasks = prevTasks.map(task => 
-            task.id === payload.new.id ? { ...task, ...payload.new } : task
-          );
-          return updatedTasks;
-        });
-      } else if (payload.eventType === 'DELETE') {
-        // Task silme
-        setTasks(prevTasks => prevTasks.filter(task => task.id !== payload.old.id));
-      } else if (payload.eventType === 'INSERT') {
-        // Yeni task ekleme
-        setTasks(prevTasks => [...prevTasks, payload.new]);
-      }
-    })
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [projectId]);
+Dashboard
+    ├── ProjectList
+    │      └── ProjectCard
+    └── ProjectHeader
 ```
 
-### Üye Güncellemeleri
-```typescript
-// /lib/hooks/use-realtime-subscription.ts
-useEffect(() => {
-  const channel = supabase
-    .channel(`project_members:${projectId}`)
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'project_members',
-      filter: `project_id=eq.${projectId}`
-    }, (payload) => {
-      // Üye değişikliklerini yönet
-      onMemberUpdate();
-    })
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [projectId, onMemberUpdate]);
+### 13.3 Hook Bağımlılıkları
 ```
-
-## Yetkilendirme Sistemi ve Güvenlik
-
-### Rol Hiyerarşisi ve İzinler
-
-```typescript
-// /lib/hooks/use-project-permissions.ts
-const calculatePermissions = (role: ProjectRole): ProjectPermissions => {
-  const permissions: ProjectPermissions = {
-    canEditProject: false,
-    canDeleteProject: false,
-    canManageMembers: false,
-    canCreateTasks: false,
-    canEditTasks: false,
-    canDeleteTasks: false,
-    canAssignTasks: false,
-    canComment: false
-  };
-
-  switch (role) {
-    case 'OWNER':
-      // Tüm izinleri ver
-      Object.keys(permissions).forEach(key => {
-        permissions[key as keyof ProjectPermissions] = true;
-      });
-      break;
-
-    case 'ADMIN':
-      permissions.canEditProject = true;
-      permissions.canManageMembers = true;
-      permissions.canCreateTasks = true;
-      permissions.canEditTasks = true;
-      permissions.canDeleteTasks = true;
-      permissions.canAssignTasks = true;
-      permissions.canComment = true;
-      break;
-
-    case 'MEMBER':
-      permissions.canCreateTasks = true;
-      permissions.canEditTasks = true;
-      permissions.canAssignTasks = true;
-      permissions.canComment = true;
-      break;
-
-    case 'VIEWER':
-      permissions.canComment = true;
-      break;
-  }
-
-  return permissions;
-};
-```
-
-### Row Level Security (RLS) Politikaları
-
-```sql
--- projects tablosu için RLS
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Projeleri görüntüleme izni"
-ON projects FOR SELECT
-USING (
-  auth.uid() IN (
-    SELECT user_id 
-    FROM project_members 
-    WHERE project_id = id
-  )
-);
-
--- tasks tablosu için RLS
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Task görüntüleme izni"
-ON tasks FOR SELECT
-USING (
-  auth.uid() IN (
-    SELECT user_id 
-    FROM project_members 
-    WHERE project_id = project_id
-  )
-);
-
-CREATE POLICY "Task düzenleme izni"
-ON tasks FOR UPDATE
-USING (
-  auth.uid() IN (
-    SELECT user_id 
-    FROM project_members 
-    WHERE project_id = project_id
-    AND role IN ('OWNER', 'ADMIN', 'MEMBER')
-  )
-);
-```
-
-## Hata Yönetimi ve Loglama
-
-### Global Error Boundary
-```typescript
-// /components/error-boundary.tsx
-class ErrorBoundary extends React.Component<Props, State> {
-  state = { hasError: false, error: null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Hata loglama servisi
-    console.error('Error caught by boundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <ErrorComponent error={this.state.error} />;
-    }
-    return this.props.children;
-  }
-}
-```
-
-### API Hata Yönetimi
-```typescript
-// /lib/services/project-service.ts
-static async updateTaskStatus(taskId: string, newStatus: string) {
-  try {
-    const { data, error } = await supabase
-      .from('tasks')
-      .update({ status: newStatus })
-      .eq('id', taskId)
-      .select()
-      .single();
-
-    if (error) {
-      // Spesifik hata tipleri
-      if (error.code === '23503') {
-        throw new Error('Referans hatası: İlgili kayıt bulunamadı');
-      }
-      if (error.code === '23505') {
-        throw new Error('Benzersizlik kısıtlaması ihlali');
-      }
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Task status update error:', error);
-    throw new Error('Görev durumu güncellenirken bir hata oluştu');
-  }
-}
-```
-
-### Toast Bildirimleri
-```typescript
-// /components/task/task-modal.tsx
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-
-  try {
-    await updateTask(taskId, taskData);
-    
-    toast({
-      title: "Başarılı",
-      description: "Görev başarıyla güncellendi",
-    });
-    
-    onSuccess?.();
-    onClose();
-  } catch (error) {
-    toast({
-      title: "Hata",
-      description: error.message || "Görev güncellenirken bir hata oluştu",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+useProjectPage
+    ├── useProjectPermissions
+    ├── useProjectDetails
+    └── useProjectModals
+        └── useTaskManagement
+            └── useRealtimeSubscription
 ``` 
