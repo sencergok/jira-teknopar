@@ -199,6 +199,8 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: Kanb
                 )}
               </Button>
             </DropdownMenuTrigger>
+
+
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Kişiye Göre Sırala</DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -264,8 +266,29 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: Kanb
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
+
           </DropdownMenu>
+          
         </div>
+        
+      {/* Clear Filters Button */}
+    <div className="flex justify-start items-center ml-2">
+    <Button
+        variant="ghost"
+        onClick={() => {
+        setSearchTerm(""); 
+        setPriorityFilter("all"); 
+        setAssigneeFilter("all"); 
+        setSortDirection("asc");
+    }}
+    className="text-red-500 hover:text-red-700 px-3 py-1 rounded-md transition-all duration-200 hover:bg-red-100"
+    >
+      <MixerHorizontalIcon className="h-5 w-5 mr-1" />
+        <span className="whitespace-nowrap">Filtreleri Temizle</span>
+    </Button>
+</div>
+
+
       </div>
 
       {/* Kanban Board */}
