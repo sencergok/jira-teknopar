@@ -2,6 +2,11 @@ import Link from 'next/link';
 import { ProjectListProps } from '@/types/project';
 import { ProjectCard } from './project-card';
 
+// Projects grid/empty state - Conditional rendering
+// emptyState - Illustration + creation CTA
+// gridLayout - Responsive 1→3 column arrangement
+// SVG assets - Custom drawn project-related imagery
+
 export function ProjectList({ projects }: ProjectListProps) {
   if (projects.length === 0) {
     return (

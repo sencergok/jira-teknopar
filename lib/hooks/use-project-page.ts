@@ -4,6 +4,11 @@ import { useProjectPermissions } from '@/lib/hooks/use-project-permissions';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { useProjectModals } from '@/lib/hooks/use-project-modals';
 
+// Project page orchestrator - Aggregates data hooks
+// permissionChecks - Role-based access
+// modalState - Unified modal management
+// realtimeUpdates - Task/member change handling
+
 export function useProjectPage() {
   const params = useParams();
   const { user } = useAuth();

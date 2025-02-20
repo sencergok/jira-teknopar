@@ -5,6 +5,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { createClient } from '@/lib/supabase/client';
 import { ProjectModalProps } from '@/types/project';
 
+// Project CRUD modal - Handles create/update projects with name+description
 export function ProjectModal({
   isOpen,
   onClose,
@@ -16,6 +17,7 @@ export function ProjectModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // handleSubmit() - Upsert project to Supabase with loading state
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -42,7 +44,7 @@ export function ProjectModal({
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Proje güncelleme hatası:', err);
+      console.error('Proje güncellenirken bir hata oluştu:', err);
       setError('Proje güncellenirken bir hata oluştu.');
     } finally {
       setLoading(false);
@@ -152,4 +154,8 @@ export function ProjectModal({
       </Dialog>
     </Transition.Root>
   );
-} 
+}
+
+// useState hooks - Manage form field states and error messages
+// Dialog/Transition - Headless UI modal animations
+// Input/Textarea - Shadcn form components with validation 

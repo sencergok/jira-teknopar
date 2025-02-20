@@ -18,7 +18,7 @@ export function KanbanColumn({ id, title, tasks, onTaskClick, projectId }: Kanba
   const sortedTasks = [...tasks].sort((a, b) => 
     a.task_order.localeCompare(b.task_order)
   );
-
+ 
   return (
     <div
       ref={setNodeRef}

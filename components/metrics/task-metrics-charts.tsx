@@ -1,3 +1,8 @@
+// Main chart component - Renders 3 data visualizations for task metrics
+// calculateMetrics() - Computes status/priority distributions and weekly progress
+// useEffect() - Triggers metric calculations when tasks change
+// Pie/Bar Charts - Visualization components from Recharts library
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -41,6 +46,7 @@ interface TaskMetricsChartsProps {
   tasks: Task[];
 }
 
+// Main chart component - Renders 3 data visualizations for task metrics
 const TaskMetricsCharts: React.FC<TaskMetricsChartsProps> = ({ tasks }) => {
   const [metrics, setMetrics] = useState<TaskMetrics>({
     statusDistribution: [],
@@ -48,6 +54,7 @@ const TaskMetricsCharts: React.FC<TaskMetricsChartsProps> = ({ tasks }) => {
     weeklyProgress: []
   });
 
+  // calculateMetrics() - Computes status/priority distributions and weekly progress
   useEffect(() => {
     const calculateMetrics = () => {
       // Calculate status distribution

@@ -43,6 +43,7 @@ interface ProjectMember {
   id: string;
 }
 
+// Member management modal - Handles add/edit/delete of project members
 export function MemberModal({
   isOpen,
   onClose,
@@ -71,6 +72,7 @@ export function MemberModal({
     return [];
   })();
 
+  // handleSubmit() - CRUD operations for members with role validation
   const fetchUsers = useCallback(async () => {
     try {
       const supabase = createClient();
@@ -102,6 +104,7 @@ export function MemberModal({
     }
   }, [projectId, existingMember]);
 
+  // useEffect() - Resets form state and loads data on modal open
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
@@ -115,6 +118,7 @@ export function MemberModal({
     }
   }, [isOpen, existingMember, fetchUsers]);
 
+  // handleSubmit() - CRUD operations for members with role validation
   const handleSubmit = async () => {
     if (!selectedUserId || !selectedRole) {
       setError('Lütfen tüm alanları doldurun.');
@@ -206,6 +210,7 @@ export function MemberModal({
     }
   };
 
+  // handleDelete() - Member removal with last admin protection
   const handleDelete = async () => {
     if (!existingMember || !canDeleteMember) return;
 

@@ -1,3 +1,6 @@
+// Code: Landing Page Hero Section
+// This page is the landing page hero section. It includes a title, description, and a call to action button. It also includes a badge and a list of features with checkmarks.
+
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

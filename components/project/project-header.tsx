@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { ProjectHeaderProps } from '@/types/project';
 
+// Projects list header - Title/count + creation CTA
+// projectCount - Dynamic total with Turkish pluralization
+// newProjectButton - Icon+text combo with focus states
+// responsiveLayout - Flex → Grid on mobile breakpoints
+
 export function ProjectHeader({ projectCount }: ProjectHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">

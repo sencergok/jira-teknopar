@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { ConfirmModal } from './confirm-modal';
 import { TaskStatus, TaskPriority, TaskModalProps } from '@/types/task';
 
+// Task management modal - Create/update tasks with status/priority/assignment
 export function TaskModal({
   isOpen,
   onClose,

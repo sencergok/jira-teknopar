@@ -1,5 +1,6 @@
 'use client';
-
+// This page is responsible for rendering the Kanban board
+// It uses the useTaskManagement hook to manage tasks
 import { useState, useEffect, ChangeEvent } from 'react';
 import {
   DndContext, 
@@ -41,6 +42,13 @@ const priorityOptions = [
   { value: 'low', label: 'Düşük Öncelik' },
 ] as const;
 
+
+// This props are passed to the KanbanBoard component
+// It contains the projectId, initial tasks and the onTaskMove function
+// onTaskMove function is called when a task is moved to another column
+// It updates the task status in the database
+// projectId is the id of the project that the tasks belong to
+// tasks is the initial tasks that are fetched from the database
 export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
@@ -83,6 +91,11 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: Kanb
 
   useRealtimeSubscription(projectId, onTaskMove);
 
+  // It creates MouseSensor and TouchSensor for drag and drop
+  // It also sets activation constraints for each sensor
+  // MouseSensor is activated when the mouse is moved 8 pixels
+  // TouchSensor is activated when the touch is moved 5 pixels after 200ms
+  
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {

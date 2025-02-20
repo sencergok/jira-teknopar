@@ -24,6 +24,7 @@ export default function DashboardLayout({
     redirect('/');
   }
 
+  // Dashboard layout component with navigation and user profile dropdown menu
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white border-b border-gray-200">

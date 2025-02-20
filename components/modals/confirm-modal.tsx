@@ -15,6 +15,7 @@ type ConfirmModalProps = {
   loading?: boolean;
 };
 
+// Confirmation dialog modal - Uses Headless UI Dialog+Transition for animations
 export function ConfirmModal({
   isOpen,
   onClose,
@@ -25,6 +26,7 @@ export function ConfirmModal({
   cancelButtonText = 'İptal',
   loading = false,
 }: ConfirmModalProps) {
+  // Transition.Child - Handles overlay fade in/out effect
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" onClose={onClose}>
@@ -92,4 +94,6 @@ export function ConfirmModal({
       </Dialog>
     </Transition.Root>
   );
-} 
+}
+
+// onConfirm/onClose - Handler props for user actions 

@@ -13,6 +13,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
+  // Kullanıcının projelerini getir
   useEffect(() => {
     const fetchProjects = async () => {
       if (!user) {
@@ -20,7 +22,7 @@ export default function DashboardPage() {
         setLoading(false);
         return;
       }
-
+      // Supabase client oluştur
       try {
         const supabase = createClient();
         const { data: memberProjects, error: memberError } = await supabase
@@ -31,9 +33,11 @@ export default function DashboardPage() {
         if (memberError) {
           throw memberError;
         }
-
+        // Kullanıcının üye olduğu projelerin id'lerini al
         const projectIds = memberProjects?.map((p: { project_id: string }) => p.project_id) || [];
 
+
+        // Kullanıcının oluşturduğu projeleri ve üye olduğu projeleri getir
         const { data, error: projectError } = await supabase
           .from('projects')
           .select(`
@@ -52,7 +56,7 @@ export default function DashboardPage() {
         if (projectError) {
           throw projectError;
         }
-
+        
         setProjects(data || []);
       } catch (err: unknown) {
         const error = err as DatabaseError;
@@ -62,10 +66,11 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-
     fetchProjects();
   }, [user]);
 
+  
+  // Yükleme durumunu kontrol et
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8">
@@ -86,7 +91,8 @@ export default function DashboardPage() {
       </div>
     );
   }
-
+    
+  // Hata durumunu kontrol et
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8">
@@ -104,7 +110,7 @@ export default function DashboardPage() {
       </div>
     );
   }
-
+  // Projeleri listele
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

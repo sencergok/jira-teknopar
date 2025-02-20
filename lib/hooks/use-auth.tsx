@@ -4,6 +4,7 @@ import { createContext, useEffect, useState, useContext } from 'react';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 
+// Auth context
 type AuthContextType = {
   user: User | null;
   loading: boolean;
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [supabase.auth]);
 
+  // Sign in with GitHub
   const signInWithGithub = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
@@ -57,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
-
+ // Sign out
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -70,4 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-} 
+}
+
+// Auth context provider - Manages user session state
+// checkSession - Initial auth state check
+// onAuthStateChange - Realtime session updates
+// signInWithGithub - OAuth flow with GitHub
+// signOut - Session termination 

@@ -1,3 +1,9 @@
+// Draggable kanban item - DnD integration
+// assignedTo - User avatar+name with fallback
+// priorityBadge - Color-coded urgency indicator
+// modalTrigger - Opens task details on click
+// dragHandle - SortableJS interaction points
+
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import Image from 'next/image';
@@ -7,6 +13,7 @@ import { TaskModal } from './task-modal';
 import { useProjectPermissions } from '@/lib/hooks/use-project-permissions';
 import { useAuth } from '@/lib/hooks/use-auth';
 
+// Draggable kanban item - DnD integration
 export function TaskCard({ task, isDragging = false }: TaskCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
@@ -106,6 +113,7 @@ export function TaskCard({ task, isDragging = false }: TaskCardProps) {
   );
 }
 
+// assignedTo - User avatar+name with fallback
 function getPriorityStyles(priority: Task['priority']): string {
   const color = TASK_PRIORITY_COLORS[priority];
   return `bg-${color}/10 text-${color}`;

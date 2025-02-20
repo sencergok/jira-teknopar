@@ -3,6 +3,10 @@
 
 import {useState,useEffect} from 'react';
 
+// Debounce hook - Delays value updates
+// useEffect - Manages timeout cleanup
+// search/filter - Primary use cases
+
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
 

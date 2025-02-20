@@ -7,8 +7,10 @@ import { ProjectModals } from '../../../../views/modals';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function ProjectDetailPage() {
+  // Project page hooks
   const { loading, error, headerProps, contentProps, modalProps } = useProjectPage();
 
+  // Loading state
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-8">
       <div className="max-w-7xl mx-auto">
@@ -24,6 +26,7 @@ export default function ProjectDetailPage() {
     </div>
   );
 
+  // Error state
   if (error) return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-8">
       <div className="max-w-7xl mx-auto">
@@ -36,7 +39,7 @@ export default function ProjectDetailPage() {
       </div>
     </div>
   );
-
+  // Render project page
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

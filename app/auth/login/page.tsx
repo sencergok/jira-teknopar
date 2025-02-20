@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useState, useEffect } from 'react';
 
+
 export default function LoginPage() {
   const { signInWithGithub } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -23,7 +24,7 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 to-white overflow-hidden">
 
 
-      {/* 🌟 Mouse Takip Eden Glow Efekti */}
+      {/* Mouse Takip Eden Glow Efekti */}
       <div 
         className="absolute w-[250px] h-[250px] bg-indigo-400 opacity-40 rounded-full filter blur-3xl pointer-events-none transition-transform duration-75 ease-out"
         style={{
@@ -46,7 +47,7 @@ export default function LoginPage() {
             Proje yönetimi artık daha kolay <br />
           </h2>
         </div>
-
+        
         <div className="mt-8">
           <div className="space-y-4">
             <button

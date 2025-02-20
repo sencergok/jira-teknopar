@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { TaskStatus } from '@/types';
 import { RealtimeService } from '@/lib/services/realtime-service';
 
+// Realtime subscription - Supabase channel
+// taskMoveHandler - Syncs status changes
+// cleanup - Channel unsubscription
 export function useRealtimeSubscription(
   projectId: string,
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void,

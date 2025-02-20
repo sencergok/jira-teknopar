@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { ProjectCardProps } from '@/types/project';
 
+// Project preview card - Clickable tile with key metrics
+// memberCount - Displays collaborators with Turkish localization
+// createdDate - Formatted TR locale date with calendar icon
+// hoverStates - Shadow/border/color transitions on interaction
+// initialAvatar - Project acronym fallback in colored badge
+
 export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link

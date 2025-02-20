@@ -1,3 +1,6 @@
+// Code: Landing page features section
+// This page is a part of the landing page. It displays the features of the product.
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Layout, Clock, Users, Zap, Shield, LineChart } from "lucide-react";

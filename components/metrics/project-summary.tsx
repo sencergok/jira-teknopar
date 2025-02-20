@@ -1,3 +1,6 @@
+// This page mention about project-summary details which is after the select an project
+
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ProjectSummaryProps } from '@/types/project';

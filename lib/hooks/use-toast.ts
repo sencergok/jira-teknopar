@@ -182,3 +182,8 @@ function useToast() {
 }
 
 export { useToast, toast }
+
+// Toast notification system - Queue management
+// reducer - Handles ADD/UPDATE/DISMISS actions
+// autoDismiss - Timeout-based removal
+// toast() - Exposed public API for notifications

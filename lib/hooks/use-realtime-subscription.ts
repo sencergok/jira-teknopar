@@ -2,6 +2,10 @@ import { useEffect } from 'react';
 import { TaskStatus } from '@/types';
 import { RealtimeService } from '@/lib/services/realtime-service';
 
+// Enhanced realtime - Handles all CRUD events
+// payloadHandler - Processes INSERT/UPDATE/DELETE
+// taskSync - Maintains UI consistency
+
 export function useRealtimeSubscription(
   projectId: string,
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void,

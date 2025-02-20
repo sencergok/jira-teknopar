@@ -11,6 +11,8 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+
+  // Proje oluşturma formu gönderildiğinde çalışacak fonksiyon
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -21,7 +23,7 @@ export default function NewProjectPage() {
       setLoading(false);
       return;
     }
-
+    // Form verilerini al
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
@@ -42,8 +44,6 @@ export default function NewProjectPage() {
         return;
       }
 
-      console.log('Kullanıcı ID:', user.id);
-      console.log('Session User ID:', session.user.id);
 
       // Önce kullanıcının varlığını kontrol edelim
       const { data: existingUser, error: userCheckError } = await supabase

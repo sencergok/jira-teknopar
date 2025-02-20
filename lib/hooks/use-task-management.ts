@@ -7,6 +7,11 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/lib/hooks/use-toast';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
+// Task DnD manager - Full workflow handling
+// filteredTasks - Complex search/sort/filter
+// realtimeSync - Database ↔ UI synchronization
+// optimisticUpdates - Instant drag feedback
+
 export const COLUMNS: KanbanColumn[] = [
   { id: TaskStatus.TODO, title: TASK_STATUS_LABELS[TaskStatus.TODO] },
   { id: TaskStatus.IN_PROGRESS, title: TASK_STATUS_LABELS[TaskStatus.IN_PROGRESS] },
