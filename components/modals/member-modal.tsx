@@ -4,12 +4,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createClient } from '@/lib/supabase/client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProjectRole } from '@/types/project';
+import { ProjectService } from '@/lib/services/project-service';
+import { User } from '@/types/user';
 
 interface MemberModalProps {
   isOpen: boolean;
@@ -26,21 +27,6 @@ interface MemberModalProps {
   };
   onSuccess: () => void;
   userRole?: ProjectRole | null;
-}
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-};
-
-interface DatabaseError {
-  message: string;
-}
-
-interface ProjectMember {
-  user_id: string;
-  id: string;
 }
 
 // Member management modal - Handles add/edit/delete of project members
@@ -72,41 +58,22 @@ export function MemberModal({
     return [];
   })();
 
-  // handleSubmit() - CRUD operations for members with role validation
-  const fetchUsers = useCallback(async () => {
-    try {
-      const supabase = createClient();
-      const { data: projectMembers, error: membersError } = await supabase
-        .from('project_members')
-        .select('user_id')
-        .eq('project_id', projectId);
-
-      if (membersError) throw membersError;
-
-      const existingUserIds = (projectMembers || []).map((member: ProjectMember) => member.user_id);
-
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('id, name, email')
-        .order('name');
-
-      if (usersError) throw usersError;
-
-      const availableUsers = (usersData || []).filter((user: User) => 
-        !existingUserIds.includes(user.id) || 
-        (existingMember && user.id === existingMember.user.id)
-      );
-
-      setUsers(availableUsers);
-    } catch (err) {
-      console.error('Kullanıcılar yüklenirken hata:', err);
-      setError('Kullanıcılar yüklenirken bir hata oluştu.');
-    }
-  }, [projectId, existingMember]);
-
-  // useEffect() - Resets form state and loads data on modal open
+  // Kullanıcıları yükle
   useEffect(() => {
     if (isOpen) {
+      const fetchUsers = async () => {
+        try {
+          const availableUsers = await ProjectService.getAvailableUsers(
+            projectId,
+            existingMember?.user.id
+          );
+          setUsers(availableUsers);
+        } catch (err) {
+          console.error('Kullanıcılar yüklenirken hata:', err);
+          setError('Kullanıcılar yüklenirken bir hata oluştu.');
+        }
+      };
+
       fetchUsers();
       if (existingMember) {
         setSelectedUserId(existingMember.user.id);
@@ -116,9 +83,8 @@ export function MemberModal({
         setSelectedRole('member');
       }
     }
-  }, [isOpen, existingMember, fetchUsers]);
+  }, [isOpen, existingMember, projectId]);
 
-  // handleSubmit() - CRUD operations for members with role validation
   const handleSubmit = async () => {
     if (!selectedUserId || !selectedRole) {
       setError('Lütfen tüm alanları doldurun.');
@@ -134,20 +100,11 @@ export function MemberModal({
     setError(null);
 
     try {
-      const supabase = createClient();
-
       if (existingMember) {
-        // Projedeki son admin kontrolü
+        // Admin sayısı kontrolü
         if (existingMember.role === 'ADMIN' && selectedRole !== 'ADMIN') {
-          const { data: adminCount, error: countError } = await supabase
-            .from('project_members')
-            .select('id', { count: 'exact' })
-            .eq('project_id', projectId)
-            .eq('role', 'ADMIN');
-
-          if (countError) throw countError;
-
-          if (adminCount?.length === 1) {
+          const adminCount = await ProjectService.getProjectAdminCount(projectId);
+          if (adminCount === 1) {
             setError('Projenin son admin üyesinin rolünü değiştiremezsiniz.');
             return;
           }
@@ -159,72 +116,23 @@ export function MemberModal({
           return;
         }
 
-        // Üye güncelleme
-        const { error: updateError } = await supabase
-          .from('project_members')
-          .update({
-            role: selectedRole
-          })
-          .eq('id', existingMember.id)
-          .eq('project_id', projectId);
-
-        if (updateError) throw updateError;
+        await ProjectService.updateProjectMember(existingMember.id, projectId, selectedRole);
         toast.success('Üye rolü başarıyla güncellendi');
       } else {
-        // Önce üyelik kontrolü yap
-        const { data: existingCheck, error: checkError } = await supabase
-          .from('project_members')
-          .select('id')
-          .eq('project_id', projectId)
-          .eq('user_id', selectedUserId)
-          .maybeSingle();
-
-        if (checkError) throw checkError;
-
-        if (existingCheck) {
-          setError('Bu kullanıcı zaten projede üye.');
-          return;
-        }
-
-        // Yeni üye ekleme
-        const { error: insertError } = await supabase
-          .from('project_members')
-          .insert({
-            project_id: projectId,
-            user_id: selectedUserId,
-            role: selectedRole
-          })
-          .select(`
-            id,
-            project_id,
-            user_id,
-            role,
-            created_at,
-            user:users!user_id (
-              id,
-              name,
-              email,
-              avatar_url
-            )
-          `)
-          .single();
-
-        if (insertError) throw insertError;
+        await ProjectService.addProjectMember(projectId, selectedUserId, selectedRole);
         toast.success('Üye başarıyla eklendi');
       }
 
       onSuccess();
       handleClose();
-    } catch (err: unknown) {
-      const error = err as DatabaseError;
-      console.error('Üye işlemi sırasında hata:', error);
-      setError(error.message || 'İşlem sırasında bir hata oluştu.');
+    } catch (err) {
+      console.error('Üye işlemi sırasında hata:', err);
+      setError(err instanceof Error ? err.message : 'İşlem sırasında bir hata oluştu.');
     } finally {
       setLoading(false);
     }
   };
 
-  // handleDelete() - Member removal with last admin protection
   const handleDelete = async () => {
     if (!existingMember || !canDeleteMember) return;
 
@@ -232,39 +140,21 @@ export function MemberModal({
     setError(null);
 
     try {
-      const supabase = createClient();
-      
-      // Projedeki son admin kontrolü
       if (existingMember.role === 'ADMIN') {
-        const { data: adminCount, error: countError } = await supabase
-          .from('project_members')
-          .select('id', { count: 'exact' })
-          .eq('project_id', projectId)
-          .eq('role', 'ADMIN');
-
-        if (countError) throw countError;
-
-        if (adminCount?.length === 1) {
+        const adminCount = await ProjectService.getProjectAdminCount(projectId);
+        if (adminCount === 1) {
           setError('Projenin son admin üyesini silemezsiniz.');
           return;
         }
       }
 
-      const { error: deleteError } = await supabase
-        .from('project_members')
-        .delete()
-        .eq('id', existingMember.id)
-        .eq('project_id', projectId);
-
-      if (deleteError) throw deleteError;
-
+      await ProjectService.deleteProjectMember(existingMember.id, projectId);
       toast.success('Üye başarıyla silindi');
       onSuccess();
       handleClose();
-    } catch (err: unknown) {
-      const error = err as DatabaseError;
-      console.error('Üye silinirken hata:', error);
-      setError(error.message || 'Üye silinirken bir hata oluştu.');
+    } catch (err) {
+      console.error('Üye silinirken hata:', err);
+      setError(err instanceof Error ? err.message : 'Üye silinirken bir hata oluştu.');
     } finally {
       setIsDeleting(false);
     }

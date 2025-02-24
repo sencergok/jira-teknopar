@@ -50,7 +50,7 @@ export default function DashboardLayout({
                 <div className="relative ml-3">
                   <div className="flex items-center space-x-4">
                     <div className="flex flex-col items-end">
-                      <span className="text-sm font-medium text-gray-700">{user.email}</span>
+                      <span className="text-sm font-medium text-gray-700">{user.user_metadata?.full_name}</span>
                       <button
                         onClick={signOut}
                         className="text-sm text-gray-500 hover:text-gray-700"

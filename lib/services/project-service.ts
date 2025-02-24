@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { Project, ProjectMember } from '@/types/project';
 import { Task } from '@/types/task';
+import { User } from '@/types/user';
 
 interface ProjectMemberWithUser {
   id: string;
@@ -33,6 +34,10 @@ interface TaskWithUser {
     name: string;
     avatar_url: string | null;
   } | null;
+}
+
+interface ProjectMemberBasic {
+  user_id: string;
 }
 
 export class ProjectService {
@@ -242,5 +247,133 @@ export class ProjectService {
     }
 
     return true;
+  }
+
+  static async getAvailableUsers(projectId: string, excludeMemberId?: string): Promise<User[]> {
+    try {
+      // Get existing project members
+      const { data: projectMembers, error: membersError } = await this.supabase
+        .from('project_members')
+        .select('user_id')
+        .eq('project_id', projectId);
+
+      if (membersError) throw membersError;
+
+      const existingUserIds = (projectMembers || []).map((member: ProjectMemberBasic) => member.user_id);
+      if (excludeMemberId) {
+        const index = existingUserIds.indexOf(excludeMemberId);
+        if (index > -1) {
+          existingUserIds.splice(index, 1);
+        }
+      }
+
+      // Get available users
+      const { data: users, error: usersError } = await this.supabase
+        .from('users')
+        .select('id, name, email')
+        .order('name');
+
+      if (usersError) throw usersError;
+
+      return (users || []).filter((user: User) => 
+        !existingUserIds.includes(user.id) || 
+        user.id === excludeMemberId
+      );
+    } catch (error) {
+      console.error('Available users fetch error:', error);
+      throw error;
+    }
+  }
+
+  static async addProjectMember(projectId: string, userId: string, role: string): Promise<ProjectMember> {
+    try {
+      // Check if member already exists
+      const { data: existingMember, error: checkError } = await this.supabase
+        .from('project_members')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existingMember) {
+        throw new Error('Bu kullanıcı zaten projede üye.');
+      }
+
+      // Add new member
+      const { data: newMember, error: insertError } = await this.supabase
+        .from('project_members')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          role: role
+        })
+        .select(`
+          id,
+          project_id,
+          user_id,
+          role,
+          created_at,
+          user:users!user_id (
+            id,
+            name,
+            email,
+            avatar_url
+          )
+        `)
+        .single();
+
+      if (insertError) throw insertError;
+      return newMember;
+    } catch (error) {
+      console.error('Project member add error:', error);
+      throw error;
+    }
+  }
+
+  static async updateProjectMember(memberId: string, projectId: string, role: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('project_members')
+        .update({ role })
+        .eq('id', memberId)
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Project member update error:', error);
+      throw error;
+    }
+  }
+
+  static async deleteProjectMember(memberId: string, projectId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('project_members')
+        .delete()
+        .eq('id', memberId)
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Project member delete error:', error);
+      throw error;
+    }
+  }
+
+  static async getProjectAdminCount(projectId: string): Promise<number> {
+    try {
+      const { data, error } = await this.supabase
+        .from('project_members')
+        .select('id', { count: 'exact' })
+        .eq('project_id', projectId)
+        .eq('role', 'ADMIN');
+
+      if (error) throw error;
+      return data?.length || 0;
+    } catch (error) {
+      console.error('Admin count fetch error:', error);
+      throw error;
+    }
   }
 } 
