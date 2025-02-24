@@ -187,13 +187,27 @@ export function MemberModal({
         }
 
         // Yeni üye ekleme
-        const { error: insertError } = await supabase
+        const { data: newMember, error: insertError } = await supabase
           .from('project_members')
           .insert({
             project_id: projectId,
             user_id: selectedUserId,
             role: selectedRole
-          });
+          })
+          .select(`
+            id,
+            project_id,
+            user_id,
+            role,
+            created_at,
+            user:users!user_id (
+              id,
+              name,
+              email,
+              avatar_url
+            )
+          `)
+          .single();
 
         if (insertError) throw insertError;
         toast.success('Üye başarıyla eklendi');

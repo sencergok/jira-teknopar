@@ -1,3 +1,5 @@
+import { ProjectMember } from './project';
+
 export enum TaskStatus {
   TODO = 'todo',
   IN_PROGRESS = 'in_progress',
@@ -82,13 +84,7 @@ export interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
-  projectMembers?: Array<{
-    user: {
-      id: string;
-      name: string;
-      avatar_url: string | null;
-    };
-  }>;
+  projectMembers?: ProjectMember[];
   existingTask?: Task;
   onSuccess?: () => void;
   permissions?: {

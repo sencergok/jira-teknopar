@@ -274,8 +274,8 @@ export function TaskModal({
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
                           <option value="">Atanmadı</option>
-                          {projectMembers?.map((member) => (
-                            <option key={member.user.id} value={member.user.id}>
+                          {projectMembers?.filter(member => member.user).map((member) => (
+                            <option key={member.id} value={member.user_id}>
                               {member.user.name}
                             </option>
                           ))}
