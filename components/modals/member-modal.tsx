@@ -187,7 +187,7 @@ export function MemberModal({
         }
 
         // Yeni üye ekleme
-        const { data: newMember, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from('project_members')
           .insert({
             project_id: projectId,
