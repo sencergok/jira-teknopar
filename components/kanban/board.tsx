@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom';
 import { TaskCard } from "@/components/task/task-card";
 import { TaskModal } from "@/components/modals/task-modal";
 import { Task, KanbanBoardProps, TaskPriority } from '@/types';
+import { RealtimeTaskPayload } from '@/types/realtime';
 import { KanbanColumn } from './column';
 import { useTaskManagement } from '@/lib/hooks/use-task-management';
 import { useRealtimeSubscription } from '@/lib/hooks/use-realtime-subscription';
@@ -34,6 +35,9 @@ import {
   PersonIcon,
   MixerHorizontalIcon,
 } from "@radix-ui/react-icons";
+import { useProjectPermissions } from '@/lib/hooks/use-project-permissions';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { COLUMNS } from '@/lib/hooks/use-task-management';
 
 const priorityOptions = [
   { value: 'all', label: 'Tüm Öncelikler' },
@@ -49,8 +53,14 @@ const priorityOptions = [
 // It updates the task status in the database
 // projectId is the id of the project that the tasks belong to
 // tasks is the initial tasks that are fetched from the database
-export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: KanbanBoardProps) {
+export function KanbanBoard({ 
+  projectId, 
+  tasks: initialTasks, 
+  onTaskMove,
+}: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { user } = useAuth();
+  const { permissions } = useProjectPermissions(projectId, user?.id || '');
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -76,7 +86,6 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: Kanb
     // Computed Values
     assignees,
     filteredTasks,
-    COLUMNS,
     
     // Event Handlers
     handleDragStart,
@@ -86,10 +95,29 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: Kanb
   } = useTaskManagement({ 
     projectId, 
     tasks, 
-    onTaskMove 
+    onTaskMove
   });
 
-  useRealtimeSubscription(projectId, onTaskMove);
+  // Realtime subscription for task updates
+  const handleRealtimeTaskUpdate = (payload: RealtimeTaskPayload) => {
+    if (payload.eventType === 'UPDATE' && payload.new && payload.new.id) {
+      onTaskMove(payload.new.id, payload.new.status);
+    } else if (payload.eventType === 'DELETE' && payload.old && payload.old.id) {
+      onTaskMove(payload.old.id, payload.old.status);
+    } else if (payload.eventType === 'INSERT' && payload.new && payload.new.id) {
+      onTaskMove(payload.new.id, payload.new.status);
+    }
+  };
+
+  const handleRealtimeMemberUpdate = () => {};
+  const handleRealtimeProjectUpdate = () => {};
+
+  useRealtimeSubscription(
+    projectId, 
+    handleRealtimeTaskUpdate, 
+    handleRealtimeMemberUpdate,
+    handleRealtimeProjectUpdate
+  );
 
   // It creates MouseSensor and TouchSensor for drag and drop
   // It also sets activation constraints for each sensor
@@ -308,6 +336,7 @@ export function KanbanBoard({ projectId, tasks: initialTasks, onTaskMove }: Kanb
               tasks={filteredTasks.filter(task => task.status === column.id)}
               onTaskClick={handleTaskClick}
               projectId={projectId}
+              canCreateTask={permissions?.canCreateTasks || false}
             />
           ))}
         </div>

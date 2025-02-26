@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { TaskStatus } from '@/types';
 import { RealtimeService } from '@/lib/services/realtime-service';
+import { RealtimeTaskPayload, RealtimeMemberPayload, RealtimeProjectPayload } from '@/types/realtime';
 
 // Enhanced realtime - Handles all CRUD events
 // payloadHandler - Processes INSERT/UPDATE/DELETE
@@ -8,24 +8,18 @@ import { RealtimeService } from '@/lib/services/realtime-service';
 
 export function useRealtimeSubscription(
   projectId: string,
-  onTaskMove: (taskId: string, newStatus: TaskStatus) => void,
-  onMemberUpdate?: () => void
+  onTaskUpdate: (payload: RealtimeTaskPayload) => void,
+  onMemberUpdate: (payload: RealtimeMemberPayload) => void,
+  onProjectUpdate: (payload: RealtimeProjectPayload) => void
 ) {
   useEffect(() => {
     const cleanup = RealtimeService.subscribeToProjectUpdates(
       projectId,
-      (payload) => {
-        if (payload.eventType === 'UPDATE' && payload.new && payload.new.id) {
-          onTaskMove(payload.new.id, payload.new.status);
-        } else if (payload.eventType === 'DELETE' && payload.old && payload.old.id) {
-          onTaskMove(payload.old.id, payload.old.status);
-        } else if (payload.eventType === 'INSERT' && payload.new && payload.new.id) {
-          onTaskMove(payload.new.id, payload.new.status);
-        }
-      },
-      onMemberUpdate || (() => {})
+      onTaskUpdate,
+      onMemberUpdate,
+      onProjectUpdate
     );
 
-    return () => cleanup();
-  }, [projectId, onTaskMove, onMemberUpdate]);
+    return cleanup;
+  }, [projectId, onTaskUpdate, onMemberUpdate, onProjectUpdate]);
 } 

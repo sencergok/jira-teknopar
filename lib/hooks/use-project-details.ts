@@ -3,7 +3,7 @@ import { Project, ProjectMember } from '@/types/project';
 import { Task, TaskStatus } from '@/types/task';
 import { ProjectService } from '@/lib/services/project-service';
 import { RealtimeService } from '@/lib/services/realtime-service';
-import { RealtimeTaskPayload, RealtimeMemberPayload } from '@/types/realtime';
+import { RealtimeTaskPayload, RealtimeMemberPayload, RealtimeProjectPayload } from '@/types/realtime';
 import { useRouter } from 'next/navigation';
 
 export function useProjectDetails(projectId: string) {
@@ -81,6 +81,12 @@ export function useProjectDetails(projectId: string) {
     }
   }, []);
 
+  const handleRealtimeProjectUpdate = useCallback((payload: RealtimeProjectPayload) => {
+    if ((payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') && payload.new) {
+      setProject(payload.new);
+    }
+  }, []);
+
   useEffect(() => {
     fetchProjectDetails();
   }, [fetchProjectDetails]);
@@ -89,13 +95,12 @@ export function useProjectDetails(projectId: string) {
     const cleanup = RealtimeService.subscribeToProjectUpdates(
       projectId,
       handleRealtimeTaskUpdate,
-      handleRealtimeMemberUpdate
+      handleRealtimeMemberUpdate,
+      handleRealtimeProjectUpdate
     );
 
-    return () => {
-      cleanup();
-    };
-  }, [projectId, handleRealtimeTaskUpdate, handleRealtimeMemberUpdate]);
+    return cleanup;
+  }, [projectId, handleRealtimeTaskUpdate, handleRealtimeMemberUpdate, handleRealtimeProjectUpdate]);
 
   return {
     project,

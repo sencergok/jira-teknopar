@@ -96,7 +96,7 @@ export function ProjectContent({
             <CardDescription>Proje metrikleri ve istatistikleri</CardDescription>
           </CardHeader>
           <CardContent>
-            <TaskMetricsCharts tasks={tasks} />
+            <TaskMetricsCharts projectId={projectId} />
           </CardContent>
         </Card>
       )

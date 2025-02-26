@@ -1,5 +1,5 @@
 import { Task } from './task';
-import { ProjectMember } from './project';
+import { ProjectMember, Project } from './project';
 
 export interface SupabaseRealtimePayload<T> {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
@@ -21,4 +21,10 @@ export interface RealtimeMemberPayload {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
   new: ProjectMember;
   old: ProjectMember;
+}
+
+export interface RealtimeProjectPayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Project;
+  old: Project;
 } 

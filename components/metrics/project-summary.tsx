@@ -1,56 +1,32 @@
 // This page mention about project-summary details which is after the select an project
 
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ProjectSummaryProps } from '@/types/project';
 import { TaskStatus } from '@/types/task';
-import { useEffect, useState } from "react";
-import { ProjectService } from "@/lib/services/project-service";
-
-interface ProjectStats {
-  totalTasks: number;
-  completedTasks: number;
-  inProgressTasks: number;
-  todoTasks: number;
-  completionRate: number;
-}
+import { useMemo } from "react";
+import { useProjectDetails } from "@/lib/hooks/use-project-details";
 
 export function ProjectSummary({ projectId }: ProjectSummaryProps) {
-  const [stats, setStats] = useState<ProjectStats>({
-    totalTasks: 0,
-    completedTasks: 0,
-    inProgressTasks: 0,
-    todoTasks: 0,
-    completionRate: 0,
-  });
+  // useProjectDetails hook'u ile realtime güncellemeleri otomatik alacak
+  const { tasks } = useProjectDetails(projectId);
+  
+  // Metrikler hesaplanır ve render edilir
+  const stats = useMemo(() => {
+    const completedTasks = tasks.filter(task => task.status === TaskStatus.DONE).length;
+    const inProgressTasks = tasks.filter(task => task.status === TaskStatus.IN_PROGRESS).length;
+    const todoTasks = tasks.filter(task => task.status === TaskStatus.TODO).length;
+    const totalTasks = tasks.length;
+    const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const projectDetails = await ProjectService.getProjectDetails(projectId);
-        const tasks = projectDetails.tasks || [];
-        
-        const completedTasks = tasks.filter(task => task.status === TaskStatus.DONE).length;
-        const inProgressTasks = tasks.filter(task => task.status === TaskStatus.IN_PROGRESS).length;
-        const todoTasks = tasks.filter(task => task.status === TaskStatus.TODO).length;
-        const totalTasks = tasks.length;
-        const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-        setStats({
-          totalTasks,
-          completedTasks,
-          inProgressTasks,
-          todoTasks,
-          completionRate,
-        });
-      } catch (error) {
-        console.error('Error fetching project stats:', error);
-      }
+    return {
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      todoTasks,
+      completionRate,
     };
-
-    fetchStats();
-  }, [projectId]);
+  }, [tasks]);
 
   const statCards = [
     {

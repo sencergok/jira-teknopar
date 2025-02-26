@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { Task } from '@/types/task';
-import { ProjectMember } from '@/types/project';
-import { RealtimeTaskPayload, RealtimeMemberPayload, SupabaseRealtimePayload } from '@/types/realtime';
+import { ProjectMember, Project } from '@/types/project';
+import { RealtimeTaskPayload, RealtimeMemberPayload, RealtimeProjectPayload, SupabaseRealtimePayload } from '@/types/realtime';
 
 export class RealtimeService {
   private static supabase = createClient();
@@ -9,7 +9,8 @@ export class RealtimeService {
   static subscribeToProjectUpdates(
     projectId: string,
     onTaskUpdate: (payload: RealtimeTaskPayload) => void,
-    onMemberUpdate: (payload: RealtimeMemberPayload) => void
+    onMemberUpdate: (payload: RealtimeMemberPayload) => void,
+    onProjectUpdate: (payload: RealtimeProjectPayload) => void
   ) {
     const taskSubscription = this.supabase
       .channel('tasks')
@@ -50,10 +51,32 @@ export class RealtimeService {
         }
       )
       .subscribe();
+      
+    // Proje güncellemeleri için yeni kanal
+    const projectSubscription = this.supabase
+      .channel('project')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects',
+          filter: `id=eq.${projectId}`
+        },
+        (payload: SupabaseRealtimePayload<Project>) => {
+          onProjectUpdate({
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old
+          });
+        }
+      )
+      .subscribe();
 
     return () => {
       this.supabase.removeChannel(taskSubscription);
       this.supabase.removeChannel(memberSubscription);
+      this.supabase.removeChannel(projectSubscription);
     };
   }
 } 

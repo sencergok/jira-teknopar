@@ -7,7 +7,7 @@ import { PlusIcon } from "@radix-ui/react-icons";
 import { TaskModal } from "@/components/modals/task-modal";
 import { useState } from 'react';
 
-export function KanbanColumn({ id, title, tasks, onTaskClick, projectId }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, tasks, onTaskClick, projectId, canCreateTask }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id,
   });
@@ -34,14 +34,16 @@ export function KanbanColumn({ id, title, tasks, onTaskClick, projectId }: Kanba
           {title}
           <span className="ml-2 text-xs text-gray-500">({tasks.length})</span>
         </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsTaskModalOpen(true)}
-          className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-        >
-          <PlusIcon className="h-4 w-4" />
-        </Button>
+        {canCreateTask && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsTaskModalOpen(true)}
+            className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+          >
+            <PlusIcon className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <div className="space-y-3 min-h-[120px]">
@@ -56,13 +58,15 @@ export function KanbanColumn({ id, title, tasks, onTaskClick, projectId }: Kanba
         </SortableContext>
       </div>
 
-      <TaskModal
-        isOpen={isTaskModalOpen}
-        onClose={() => setIsTaskModalOpen(false)}
-        projectId={projectId}
-        initialStatus={id}
-        onSuccess={() => setIsTaskModalOpen(false)}
-      />
+      {isTaskModalOpen && (
+        <TaskModal
+          isOpen={isTaskModalOpen}
+          onClose={() => setIsTaskModalOpen(false)}
+          projectId={projectId}
+          initialStatus={id}
+          onSuccess={() => setIsTaskModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

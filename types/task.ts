@@ -55,6 +55,7 @@ export interface KanbanColumnProps {
   tasks: Task[];
   onTaskClick: (taskId: string) => void;
   projectId: string;
+  canCreateTask: boolean;
 }
 
 export interface KanbanBoardProps {
