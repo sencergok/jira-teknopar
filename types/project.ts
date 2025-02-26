@@ -86,7 +86,6 @@ export interface ProjectPermissions {
   canEditTasks: boolean;
   canDeleteTasks: boolean;
   canAssignTasks: boolean;
-  canComment: boolean;
 }
 
 export interface ProjectTaskModalProps {

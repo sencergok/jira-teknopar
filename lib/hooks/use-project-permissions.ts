@@ -10,8 +10,7 @@ export function useProjectPermissions(projectId: string, userId: string | undefi
     canCreateTasks: false,
     canEditTasks: false,
     canDeleteTasks: false,
-    canAssignTasks: false,
-    canComment: false
+    canAssignTasks: false
   });
   const [role, setRole] = useState<ProjectRole | null>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -63,8 +62,7 @@ export function useProjectPermissions(projectId: string, userId: string | undefi
         canCreateTasks: false,
         canEditTasks: false,
         canDeleteTasks: false,
-        canAssignTasks: false,
-        canComment: false
+        canAssignTasks: false
       };
 
       if (currentRole === 'OWNER') {
@@ -81,7 +79,6 @@ export function useProjectPermissions(projectId: string, userId: string | undefi
         newPermissions.canEditTasks = true;
         newPermissions.canDeleteTasks = true;
         newPermissions.canAssignTasks = true;
-        newPermissions.canComment = true;
       } else if (currentRole === 'MEMBER') {
         // MEMBER - Sadece görev yönetimi yetkileri
         newPermissions.canEditProject = false;
@@ -91,13 +88,11 @@ export function useProjectPermissions(projectId: string, userId: string | undefi
         newPermissions.canEditTasks = true;
         newPermissions.canDeleteTasks = false;
         newPermissions.canAssignTasks = true;
-        newPermissions.canComment = true;
       } else if (currentRole === 'VIEWER') {
         // VIEWER - Sadece görüntüleme yetkileri
         Object.keys(newPermissions).forEach(key => {
           newPermissions[key as keyof ProjectPermissions] = false;
         });
-        newPermissions.canComment = true; // Viewer sadece yorum yapabilir
       }
 
       setPermissions(newPermissions);
@@ -112,8 +107,7 @@ export function useProjectPermissions(projectId: string, userId: string | undefi
         canCreateTasks: false,
         canEditTasks: false,
         canDeleteTasks: false,
-        canAssignTasks: false,
-        canComment: false
+        canAssignTasks: false
       });
     }
   }, [projectId, userId]);
